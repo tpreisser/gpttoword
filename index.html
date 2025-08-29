@@ -125,23 +125,363 @@
   <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
   <Default Extension="xml" ContentType="application/xml"/>
   <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
+  <Override PartName="/word/numbering.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.numbering+xml"/>
+  <Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/>
 </Types>`);
       
       zip.file('_rels/.rels', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
   <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
+  <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/numbering" Target="word/numbering.xml"/>
+  <Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="word/styles.xml"/>
 </Relationships>`);
+      
+      // Parse HTML content and convert to Word XML
+      function htmlToWordXml(htmlContent) {
+        // Create a temporary div to parse HTML
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = htmlContent;
+        
+        let wordXml = '';
+        
+        // Process each child node
+        function processNode(node) {
+          if (node.nodeType === Node.TEXT_NODE) {
+            // Plain text
+            const text = node.textContent.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            if (text.trim()) {
+              wordXml += `<w:t>${text}</w:t>`;
+            }
+          } else if (node.nodeType === Node.ELEMENT_NODE) {
+            const tagName = node.tagName.toLowerCase();
+            
+            switch (tagName) {
+              case 'h1':
+              case 'h2':
+              case 'h3':
+              case 'h4':
+              case 'h5':
+              case 'h6':
+                // Headers
+                wordXml += `<w:p><w:pPr><w:pStyle w:val="Heading${tagName.charAt(1)}"/></w:pPr><w:r><w:rPr><w:b/><w:sz w:val="${32 - (tagName.charAt(1) * 2)}"/></w:rPr>`;
+                Array.from(node.childNodes).forEach(processNode);
+                wordXml += `</w:r></w:p>`;
+                break;
+                
+              case 'p':
+                // Paragraphs with spacing
+                wordXml += `<w:p><w:pPr><w:spacing w:before="120" w:after="120"/></w:pPr><w:r>`;
+                Array.from(node.childNodes).forEach(processNode);
+                wordXml += `</w:r></w:p>`;
+                break;
+                
+              case 'strong':
+              case 'b':
+                // Bold text
+                wordXml += `<w:r><w:rPr><w:b/></w:rPr>`;
+                Array.from(node.childNodes).forEach(processNode);
+                wordXml += `</w:r>`;
+                break;
+                
+              case 'em':
+              case 'i':
+                // Italic text
+                wordXml += `<w:r><w:rPr><w:i/></w:rPr>`;
+                Array.from(node.childNodes).forEach(processNode);
+                wordXml += `</w:r>`;
+                break;
+                
+              case 'code':
+                // Code (monospace)
+                wordXml += `<w:r><w:rPr><w:rFonts w:ascii="Courier New" w:hAnsi="Courier New"/></w:rPr>`;
+                Array.from(node.childNodes).forEach(processNode);
+                wordXml += `</w:r>`;
+                break;
+                
+              case 'pre':
+                // Code block
+                wordXml += `<w:p><w:pPr><w:pStyle w:val="CodeBlock"/></w:pPr><w:r><w:rPr><w:rFonts w:ascii="Courier New" w:hAnsi="Courier New"/></w:rPr>`;
+                Array.from(node.childNodes).forEach(processNode);
+                wordXml += `</w:r></w:p>`;
+                break;
+                
+              case 'ul':
+                // Unordered list
+                Array.from(node.children).forEach(li => {
+                  if (li.tagName.toLowerCase() === 'li') {
+                    wordXml += `<w:p><w:pPr><w:numPr><w:ilvl w:val="0"/><w:numId w:val="1"/></w:numPr></w:pPr><w:r>`;
+                    Array.from(li.childNodes).forEach(processNode);
+                    wordXml += `</w:r></w:p>`;
+                  }
+                });
+                break;
+                
+              case 'ol':
+                // Ordered list
+                Array.from(node.children).forEach((li, index) => {
+                  if (li.tagName.toLowerCase() === 'li') {
+                    wordXml += `<w:p><w:pPr><w:numPr><w:ilvl w:val="0"/><w:numId w:val="2"/></w:numPr></w:pPr><w:r>`;
+                    Array.from(li.childNodes).forEach(processNode);
+                    wordXml += `</w:r></w:p>`;
+                  }
+                });
+                break;
+                
+              case 'table':
+                // Table with proper structure and shading
+                wordXml += `<w:tbl><w:tblPr><w:tblStyle w:val="TableGrid"/><w:tblW w:w="0" w:type="auto"/></w:tblPr>`;
+                Array.from(node.children).forEach(processNode);
+                wordXml += `</w:tbl>`;
+                break;
+                
+              case 'tr':
+                // Table row
+                wordXml += `<w:tr>`;
+                Array.from(node.children).forEach(processNode);
+                wordXml += `</w:tr>`;
+                break;
+                
+              case 'td':
+                // Table cell (regular)
+                wordXml += `<w:tc><w:tcPr><w:tcW w:w="2000" w:type="dxa"/><w:shd w:val="clear" w:color="auto" w:fill="FFFFFF"/></w:tcPr><w:p><w:r>`;
+                Array.from(node.childNodes).forEach(processNode);
+                wordXml += `</w:r></w:p></w:tc>`;
+                break;
+                
+              case 'th':
+                // Table header cell (shaded)
+                wordXml += `<w:tc><w:tcPr><w:tcW w:w="2000" w:type="dxa"/><w:shd w:val="clear" w:color="auto" w:fill="E7E6E6"/></w:tcPr><w:p><w:r><w:rPr><w:b/></w:rPr>`;
+                Array.from(node.childNodes).forEach(processNode);
+                wordXml += `</w:r></w:p></w:tc>`;
+                break;
+                
+              case 'br':
+                // Line break
+                wordXml += `</w:r></w:p><w:p><w:r>`;
+                break;
+                
+              case 'hr':
+                // Horizontal line/divider
+                wordXml += `</w:r></w:p><w:p><w:pPr><w:pBdr><w:bottom w:val="single" w:sz="6" w:space="1" w:color="CCCCCC"/></w:pBdr><w:spacing w:before="240" w:after="240"/></w:pPr><w:r><w:t></w:t></w:r></w:p><w:p><w:r>`;
+                break;
+                
+              case 'div':
+                // Check for dividers or sections
+                if (node.className && (node.className.includes('divider') || node.className.includes('separator') || node.className.includes('border'))) {
+                  // Add extra spacing for dividers
+                  wordXml += `</w:r></w:p><w:p><w:pPr><w:spacing w:before="360" w:after="360"/></w:pPr><w:r><w:t></w:t></w:r></w:p><w:p><w:r>`;
+                } else {
+                  // Regular div with extra spacing
+                  wordXml += `</w:r></w:p><w:p><w:pPr><w:spacing w:before="120" w:after="120"/></w:pPr><w:r>`;
+                  Array.from(node.childNodes).forEach(processNode);
+                  wordXml += `</w:r></w:p><w:p><w:r>`;
+                }
+                break;
+                
+              default:
+                // Process child nodes for unknown tags
+                Array.from(node.childNodes).forEach(processNode);
+                break;
+            }
+          }
+        }
+        
+        // Process all nodes
+        Array.from(tempDiv.childNodes).forEach(processNode);
+        
+        return wordXml;
+      }
+      
+      // Convert content to Word XML
+      const wordContent = htmlToWordXml(content);
       
       zip.file('word/document.xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
   <w:body>
-    <w:p>
-      <w:r>
-        <w:t>${content.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '</w:t></w:r></w:p><w:p><w:r><w:t>')}</w:t>
-      </w:r>
-    </w:p>
+    ${wordContent}
   </w:body>
 </w:document>`);
+      
+      // Add numbering definitions for lists
+      zip.file('word/numbering.xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:numbering xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+  <w:abstractNum w:abstractNumId="0">
+    <w:nsid w:val="00000001"/>
+    <w:multiLevelType w:val="hybridMultilevel"/>
+    <w:lvl w:ilvl="0">
+      <w:start w:val="1"/>
+      <w:numFmt w:val="bullet"/>
+      <w:lvlText w:val="•"/>
+      <w:lvlJc w:val="left"/>
+      <w:pPr><w:ind w:left="720" w:hanging="360"/></w:pPr>
+      <w:rPr><w:rFonts w:ascii="Symbol" w:hAnsi="Symbol" w:hint="default"/></w:rPr>
+    </w:lvl>
+  </w:abstractNum>
+  <w:abstractNum w:abstractNumId="1">
+    <w:nsid w:val="00000002"/>
+    <w:multiLevelType w:val="hybridMultilevel"/>
+    <w:lvl w:ilvl="0">
+      <w:start w:val="1"/>
+      <w:numFmt w:val="decimal"/>
+      <w:lvlText w:val="%1."/>
+      <w:lvlJc w:val="left"/>
+      <w:pPr><w:ind w:left="720" w:hanging="360"/></w:pPr>
+    </w:lvl>
+  </w:abstractNum>
+  <w:num w:numId="1">
+    <w:abstractNumId w:val="0"/>
+  </w:num>
+  <w:num w:numId="2">
+    <w:abstractNumId w:val="1"/>
+  </w:num>
+</w:numbering>`);
+      
+      // Add styles for headers and formatting
+      zip.file('word/styles.xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+  <w:docDefaults>
+    <w:rPrDefault>
+      <w:rPr>
+        <w:rFonts w:ascii="Calibri" w:eastAsia="Calibri" w:hAnsi="Calibri" w:cs="Calibri"/>
+        <w:lang w:val="en-US" w:eastAsia="en-US" w:bidi="ar-SA"/>
+      </w:rPr>
+    </w:rPrDefault>
+  </w:docDefaults>
+  <w:latentStyles w:defLockedState="0" w:defUIPriority="99" w:defSemiHidden="0" w:defUnhideWhenUsed="0" w:defQFormat="0" w:count="371">
+    <w:lsdException w:name="Normal" w:uiPriority="0" w:qFormat="1"/>
+    <w:lsdException w:name="heading 1" w:uiPriority="9" w:qFormat="1"/>
+    <w:lsdException w:name="heading 2" w:uiPriority="9" w:qFormat="1"/>
+    <w:lsdException w:name="heading 3" w:uiPriority="9" w:qFormat="1"/>
+  </w:latentStyles>
+  <w:style w:type="paragraph" w:default="1" w:styleId="Normal">
+    <w:name w:val="Normal"/>
+    <w:qFormat/>
+  </w:style>
+  <w:style w:type="paragraph" w:styleId="Heading1">
+    <w:name w:val="heading 1"/>
+    <w:basedOn w:val="Normal"/>
+    <w:next w:val="Normal"/>
+    <w:link w:val="Heading1Char"/>
+    <w:uiPriority w:val="9"/>
+    <w:qFormat/>
+    <w:rsid w:val="00000001"/>
+    <w:pPr>
+      <w:spacing w:before="240" w:after="0"/>
+      <w:outlineLvl w:val="0"/>
+    </w:pPr>
+    <w:rPr>
+      <w:rFonts w:ascii="Calibri Light" w:eastAsia="Calibri Light" w:hAnsi="Calibri Light" w:cs="Calibri Light"/>
+      <w:color w:val="2F5496"/>
+      <w:sz w:val="32"/>
+      <w:szCs w:val="32"/>
+    </w:rPr>
+  </w:style>
+  <w:style w:type="paragraph" w:styleId="Heading2">
+    <w:name w:val="heading 2"/>
+    <w:basedOn w:val="Normal"/>
+    <w:next w:val="Normal"/>
+    <w:link w:val="Heading2Char"/>
+    <w:uiPriority w:val="9"/>
+    <w:qFormat/>
+    <w:rsid w:val="00000001"/>
+    <w:pPr>
+      <w:spacing w:before="240" w:after="0"/>
+      <w:outlineLvl w:val="1"/>
+    </w:pPr>
+    <w:rPr>
+      <w:rFonts w:ascii="Calibri Light" w:eastAsia="Calibri Light" w:hAnsi="Calibri Light" w:cs="Calibri Light"/>
+      <w:color w:val="2F5496"/>
+      <w:sz w:val="26"/>
+      <w:szCs w:val="26"/>
+    </w:rPr>
+  </w:style>
+  <w:style w:type="paragraph" w:styleId="Heading3">
+    <w:name w:val="heading 3"/>
+    <w:basedOn w:val="Normal"/>
+    <w:next w:val="Normal"/>
+    <w:link w:val="Heading3Char"/>
+    <w:uiPriority w:val="9"/>
+    <w:qFormat/>
+    <w:rsid w:val="00000001"/>
+    <w:pPr>
+      <w:spacing w:before="240" w:after="0"/>
+      <w:outlineLvl w:val="2"/>
+    </w:pPr>
+    <w:rPr>
+      <w:rFonts w:ascii="Calibri Light" w:eastAsia="Calibri Light" w:hAnsi="Calibri Light" w:cs="Calibri Light"/>
+      <w:color w:val="1F3763"/>
+      <w:sz w:val="24"/>
+      <w:szCs w:val="24"/>
+    </w:rPr>
+  </w:style>
+  <w:style w:type="character" w:styleId="Heading1Char">
+    <w:name w:val="Heading 1 Char"/>
+    <w:basedOn w:val="DefaultParagraphFont"/>
+    <w:link w:val="Heading1"/>
+    <w:uiPriority w:val="9"/>
+    <w:rsid w:val="00000001"/>
+    <w:rPr>
+      <w:rFonts w:ascii="Calibri Light" w:eastAsia="Calibri Light" w:hAnsi="Calibri Light" w:cs="Calibri Light"/>
+      <w:color w:val="2F5496"/>
+      <w:sz w:val="32"/>
+      <w:szCs w:val="32"/>
+    </w:rPr>
+  </w:style>
+  <w:style w:type="character" w:styleId="Heading2Char">
+    <w:name w:val="Heading 2 Char"/>
+    <w:basedOn w:val="DefaultParagraphFont"/>
+    <w:link w:val="Heading2"/>
+    <w:uiPriority w:val="9"/>
+    <w:rsid w:val="00000001"/>
+    <w:rPr>
+      <w:rFonts w:ascii="Calibri Light" w:eastAsia="Calibri Light" w:hAnsi="Calibri Light" w:cs="Calibri Light"/>
+      <w:color w:val="2F5496"/>
+      <w:sz w:val="26"/>
+      <w:szCs w:val="26"/>
+    </w:rPr>
+  </w:style>
+  <w:style w:type="character" w:styleId="Heading3Char">
+    <w:name w:val="Heading 3 Char"/>
+    <w:basedOn w:val="DefaultParagraphFont"/>
+    <w:link w:val="Heading3"/>
+    <w:uiPriority w:val="9"/>
+    <w:rsid w:val="00000001"/>
+    <w:rPr>
+      <w:rFonts w:ascii="Calibri Light" w:eastAsia="Calibri Light" w:hAnsi="Calibri Light" w:cs="Calibri Light"/>
+      <w:color w:val="1F3763"/>
+      <w:sz w:val="24"/>
+      <w:szCs w:val="24"/>
+    </w:rPr>
+  </w:style>
+  <w:style w:type="table" w:styleId="TableGrid">
+    <w:name w:val="Table Grid"/>
+    <w:basedOn w:val="NormalTable"/>
+    <w:uiPriority w:val="39"/>
+    <w:rsid w:val="00000001"/>
+    <w:tblPr>
+      <w:tblBorders>
+        <w:top w:val="single" w:sz="4" w:space="0" w:color="auto"/>
+        <w:left w:val="single" w:sz="4" w:space="0" w:color="auto"/>
+        <w:bottom w:val="single" w:sz="4" w:space="0" w:color="auto"/>
+        <w:right w:val="single" w:sz="4" w:space="0" w:color="auto"/>
+        <w:insideH w:val="single" w:sz="4" w:space="0" w:color="auto"/>
+        <w:insideV w:val="single" w:sz="4" w:space="0" w:color="auto"/>
+      </w:tblBorders>
+    </w:tblPr>
+  </w:style>
+  <w:style w:type="table" w:styleId="NormalTable">
+    <w:name w:val="Normal Table"/>
+    <w:uiPriority w:val="99"/>
+    <w:semiHidden/>
+    <w:unhideWhenUsed/>
+    <w:tblPr>
+      <w:tblInd w:w="0" w:type="dxa"/>
+    </w:tblPr>
+    <w:tblGrid>
+      <w:gridCol w:w="2000"/>
+    </w:tblGrid>
+  </w:style>
+</w:styles>`);
       
       // Generate the ZIP file
       zip.generateAsync({type: 'blob'}).then(function(blob) {
