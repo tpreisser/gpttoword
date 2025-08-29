@@ -354,99 +354,82 @@
       return createZipFile(files);
     }
 
-    // ZIP file creation that works in both browser and Google Apps Script
+    // ZIP file creation optimized for web deployment
     function createZipFile(files) {
-      // Check if we're in Google Apps Script environment
-      const isGoogleAppsScript = typeof google !== 'undefined' && google.script;
+      const zipData = [];
+      let offset = 0;
+      const centralDirectory = [];
       
-      if (isGoogleAppsScript) {
-        // For Google Apps Script, we'll use a different approach
-        // Create a simple text representation that can be converted to DOCX
-        const docxContent = {
-          '[Content_Types].xml': files.find(f => f.name === '[Content_Types].xml').content,
-          '_rels/.rels': files.find(f => f.name === '_rels/.rels').content,
-          'word/_rels/document.xml.rels': files.find(f => f.name === 'word/_rels/document.xml.rels').content,
-          'word/styles.xml': files.find(f => f.name === 'word/styles.xml').content,
-          'word/document.xml': files.find(f => f.name === 'word/document.xml').content
-        };
+      // Convert files object to array format
+      const fileEntries = Object.entries(files).map(([name, content]) => ({ name, content }));
+      
+      fileEntries.forEach(file => {
+        const content = enc.encode(file.content);
+        const name = enc.encode(file.name);
         
-        // Return a special marker that Google Apps Script will handle
-        return { type: 'google-apps-script', content: docxContent };
-      } else {
-        // For browser, use the original ZIP creation
-        const zipData = [];
-        
-        let offset = 0;
-        const centralDirectory = [];
-        
-        files.forEach(file => {
-          const content = enc.encode(file.content);
-          const name = enc.encode(file.name);
-          
-          // Local file header
-          zipData.push(
-            0x50, 0x4B, 0x03, 0x04, // Local file header signature
-            0x14, 0x00, // Version needed to extract
-            0x00, 0x00, // General purpose bit flag
-            0x00, 0x00, // Compression method (store)
-            0x00, 0x00, // Last mod file time
-            0x00, 0x00, // Last mod file date
-            0x00, 0x00, 0x00, 0x00, // CRC32 (we'll calculate this)
-            content.length & 0xFF, (content.length >> 8) & 0xFF, (content.length >> 16) & 0xFF, (content.length >> 24) & 0xFF, // Compressed size
-            content.length & 0xFF, (content.length >> 8) & 0xFF, (content.length >> 16) & 0xFF, (content.length >> 24) & 0xFF, // Uncompressed size
-            name.length & 0xFF, (name.length >> 8) & 0xFF, // File name length
-            0x00, 0x00 // Extra field length
-          );
-          
-          // File name
-          zipData.push(...name);
-          
-          // File content
-          zipData.push(...content);
-          
-          // Central directory entry
-          const cdEntry = [
-            0x50, 0x4B, 0x01, 0x02, // Central directory file header signature
-            0x14, 0x00, // Version made by
-            0x14, 0x00, // Version needed to extract
-            0x00, 0x00, // General purpose bit flag
-            0x00, 0x00, // Compression method
-            0x00, 0x00, // Last mod file time
-            0x00, 0x00, // Last mod file date
-            0x00, 0x00, 0x00, 0x00, // CRC32
-            content.length & 0xFF, (content.length >> 8) & 0xFF, (content.length >> 16) & 0xFF, (content.length >> 24) & 0xFF, // Compressed size
-            content.length & 0xFF, (content.length >> 8) & 0xFF, (content.length >> 16) & 0xFF, (content.length >> 24) & 0xFF, // Uncompressed size
-            name.length & 0xFF, (name.length >> 8) & 0xFF, // File name length
-            0x00, 0x00, // Extra field length
-            0x00, 0x00, // File comment length
-            0x00, 0x00, // Disk number start
-            0x00, 0x00, // Internal file attributes
-            0x00, 0x00, 0x00, 0x00, // External file attributes
-            offset & 0xFF, (offset >> 8) & 0xFF, (offset >> 16) & 0xFF, (offset >> 24) & 0xFF // Relative offset of local header
-          ];
-          
-          centralDirectory.push(...cdEntry, ...name);
-          
-          offset += 30 + name.length + content.length;
-        });
-        
-        // Add central directory
-        zipData.push(...centralDirectory);
-        
-        // End of central directory
+        // Local file header
         zipData.push(
-          0x50, 0x4B, 0x05, 0x06, // End of central directory signature
-          0x00, 0x00, // Number of this disk
-          0x00, 0x00, // Number of the disk with the start of the central directory
-          files.length & 0xFF, (files.length >> 8) & 0xFF, // Total number of entries in the central directory on this disk
-          files.length & 0xFF, (files.length >> 8) & 0xFF, // Total number of entries in the central directory
-          centralDirectory.length & 0xFF, (centralDirectory.length >> 8) & 0xFF, (centralDirectory.length >> 16) & 0xFF, (centralDirectory.length >> 24) & 0xFF, // Size of the central directory
-          (zipData.length - centralDirectory.length) & 0xFF, ((zipData.length - centralDirectory.length) >> 8) & 0xFF, ((zipData.length - centralDirectory.length) >> 16) & 0xFF, ((zipData.length - centralDirectory.length) >> 24) & 0xFF, // Offset of start of central directory with respect to the starting disk number
-          0x00, 0x00 // ZIP file comment length
+          0x50, 0x4B, 0x03, 0x04, // Local file header signature
+          0x14, 0x00, // Version needed to extract
+          0x00, 0x00, // General purpose bit flag
+          0x00, 0x00, // Compression method (store)
+          0x00, 0x00, // Last mod file time
+          0x00, 0x00, // Last mod file date
+          0x00, 0x00, 0x00, 0x00, // CRC32 (we'll calculate this)
+          content.length & 0xFF, (content.length >> 8) & 0xFF, (content.length >> 16) & 0xFF, (content.length >> 24) & 0xFF, // Compressed size
+          content.length & 0xFF, (content.length >> 8) & 0xFF, (content.length >> 16) & 0xFF, (content.length >> 24) & 0xFF, // Uncompressed size
+          name.length & 0xFF, (name.length >> 8) & 0xFF, // File name length
+          0x00, 0x00 // Extra field length
         );
         
-        return new Blob([new Uint8Array(zipData)], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
-      }
+        // File name
+        zipData.push(...name);
+        
+        // File content
+        zipData.push(...content);
+        
+        // Central directory entry
+        const cdEntry = [
+          0x50, 0x4B, 0x01, 0x02, // Central directory file header signature
+          0x14, 0x00, // Version made by
+          0x14, 0x00, // Version needed to extract
+          0x00, 0x00, // General purpose bit flag
+          0x00, 0x00, // Compression method
+          0x00, 0x00, // Last mod file time
+          0x00, 0x00, // Last mod file date
+          0x00, 0x00, 0x00, 0x00, // CRC32
+          content.length & 0xFF, (content.length >> 8) & 0xFF, (content.length >> 16) & 0xFF, (content.length >> 24) & 0xFF, // Compressed size
+          content.length & 0xFF, (content.length >> 8) & 0xFF, (content.length >> 16) & 0xFF, (content.length >> 24) & 0xFF, // Uncompressed size
+          name.length & 0xFF, (name.length >> 8) & 0xFF, // File name length
+          0x00, 0x00, // Extra field length
+          0x00, 0x00, // File comment length
+          0x00, 0x00, // Disk number start
+          0x00, 0x00, // Internal file attributes
+          0x00, 0x00, 0x00, 0x00, // External file attributes
+          offset & 0xFF, (offset >> 8) & 0xFF, (offset >> 16) & 0xFF, (offset >> 24) & 0xFF // Relative offset of local header
+        ];
+        
+        centralDirectory.push(...cdEntry, ...name);
+        
+        offset += 30 + name.length + content.length;
+      });
+      
+      // Add central directory
+      zipData.push(...centralDirectory);
+      
+      // End of central directory
+      zipData.push(
+        0x50, 0x4B, 0x05, 0x06, // End of central directory signature
+        0x00, 0x00, // Number of this disk
+        0x00, 0x00, // Number of the disk with the start of the central directory
+        fileEntries.length & 0xFF, (fileEntries.length >> 8) & 0xFF, // Total number of entries in the central directory on this disk
+        fileEntries.length & 0xFF, (fileEntries.length >> 8) & 0xFF, // Total number of entries in the central directory
+        centralDirectory.length & 0xFF, (centralDirectory.length >> 8) & 0xFF, (centralDirectory.length >> 16) & 0xFF, (centralDirectory.length >> 24) & 0xFF, // Size of the central directory
+        (zipData.length - centralDirectory.length) & 0xFF, ((zipData.length - centralDirectory.length) >> 8) & 0xFF, ((zipData.length - centralDirectory.length) >> 16) & 0xFF, ((zipData.length - centralDirectory.length) >> 24) & 0xFF, // Offset of start of central directory with respect to the starting disk number
+        0x00, 0x00 // ZIP file comment length
+      );
+      
+      return new Blob([new Uint8Array(zipData)], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
     }
 
     /* ---------- UI wires ---------- */
@@ -529,16 +512,25 @@
 
         
         // Use browser method for GitHub Pages
-        const wordContent = generateWordXml(raw);
-        const blob = generateDocx(wordContent);
-        const base = (document.getElementById('filename').value||'R2 GPT Export').replace(/\.docx$/i,'');
-        const a = document.createElement('a'); 
-        a.href = URL.createObjectURL(blob); 
-        a.download = base + '.docx';
-        document.body.appendChild(a); 
-        a.click();
-        setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 400);
-        showToast('✅ Building native .docx …');
+        try {
+          const wordContent = generateWordXml(raw);
+          console.log('Word XML generated, length:', wordContent.length);
+          
+          const blob = generateDocx(wordContent);
+          console.log('DOCX blob created, size:', blob.size, 'bytes');
+          
+          const base = (document.getElementById('filename').value||'R2 GPT Export').replace(/\.docx$/i,'');
+          const a = document.createElement('a'); 
+          a.href = URL.createObjectURL(blob); 
+          a.download = base + '.docx';
+          document.body.appendChild(a); 
+          a.click();
+          setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 400);
+          showToast('✅ DOCX file generated successfully!');
+        } catch (error) {
+          console.error('DOCX generation error:', error);
+          showToast('❌ DOCX generation failed: ' + error.message);
+        }
       } catch (error) {
         showToast('❌ DOCX generation failed: ' + error.message);
         console.error('DOCX error:', error);
