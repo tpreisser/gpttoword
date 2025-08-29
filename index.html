@@ -1,50 +1,51 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <base target="_top">
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;700&display=swap" rel="stylesheet">
-  <title>R² Solutions · GPT → DOCX Converter</title>
-  <style>
-    :root{
-      --font:'Plus Jakarta Sans',sans-serif;
-      --navy:#0a041a; --blue:#3c67e3; --violet:#8b5cf6;
-      --light:#e2e8f0; --panel:rgba(20,15,40,.6); --panel-bd:rgba(139,92,246,.35);
-      --field-bd:rgba(139,92,246,.35); --bd:#1f2937; --backdrop:rgba(4,7,20,.72);
-    }
-    html,body{margin:0;padding:0;height:100%;font-family:var(--font);background:var(--navy);color:var(--light);}
-    body{display:flex;justify-content:center;text-align:center}
-    body::before{content:'';position:fixed;left:0;top:0;width:520px;height:520px;background:radial-gradient(circle,var(--blue),var(--violet));filter:blur(180px);opacity:.35;pointer-events:none;animation:pan 22s ease-in-out infinite alternate;z-index:0}
-    @keyframes pan{from{transform:translate(-40%,-40%) scale(1)}to{transform:translate(40%,40%) scale(1.5)}}
-    .main{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;gap:1rem;padding:2rem 2rem 4rem;width:100%}
-    .logo{width:min(900px,92vw);height:auto;display:block;margin:0 auto;transform:translateX(60px)}
-    .sub{font-size:1.06rem;font-weight:400;max-width:900px;line-height:1.5;margin-top:.25rem;background:linear-gradient(90deg,#a7b7e8,#c6b2f8);-webkit-background-clip:text;background-clip:text;color:transparent}
-    .box{margin-top:1.2rem;width:clamp(360px,92vw,1100px);background:var(--panel);border:1px solid var(--panel-bd);border-radius:20px;box-shadow:0 8px 32px rgba(0,0,0,.45);overflow:visible;display:flex;flex-direction:column;backdrop-filter:blur(10px)}
-    .hdr{display:flex;align-items:center;justify-content:space-between;padding:.9rem 1.2rem;background:linear-gradient(90deg,var(--blue),var(--violet))}
-    .hdr .l{display:flex;align-items:baseline;gap:10px}
-    .hdr .title{font-weight:700;color:#fff;font-size:1.15rem}
-    .hdr .v{font-weight:500;color:rgba(255,255,255,.8);font-size:.86rem}
-    .dots{display:flex;gap:7px}.dot{width:10px;height:10px;border-radius:50%;background:rgba(255,255,255,.35)}
-    .body{padding:18px;display:flex;flex-direction:column;gap:14px;text-align:left}
-    .md{width:100%;min-height:320px;resize:vertical;background:#0a0f1e;border:1px solid var(--field-bd);color:#e2e8f0;border-radius:12px;padding:16px;box-sizing:border-box;font-size:1.05rem;line-height:1.6;outline:none}
-    .controls{display:flex;gap:.8rem;flex-wrap:wrap;align-items:center;margin-top:10px}
-    .filename{background:#0a0f1e;border:1px solid var(--field-bd);color:#e2e8f0;border-radius:12px;padding:.75rem 1rem;min-width:260px;flex:1}
-    .btn{appearance:none;border:1px solid var(--bd);background:#10192e;color:#e6faff;border-radius:12px;padding:.75rem 1rem;font-weight:800;cursor:pointer;transition:.18s}
-    .btn:hover{transform:translateY(-1px);border-color:#8b5cf6}
-    .btn.good{border-color:#15b57b}
-    /* Modal */
-    .backdrop{position:fixed;inset:0;background:var(--backdrop);display:none;z-index:50}
-    .modal{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);width:min(560px,92vw);background:#0b1022;border:1px solid var(--panel-bd);border-radius:16px;padding:18px;box-shadow:0 20px 50px rgba(0,0,0,.6);display:none;z-index:51;text-align:left}
-    .modal h3{margin:0 0 8px}
-    .choice{display:flex;flex-direction:column;row-gap:14px;margin:12px 0}
-    .draglet{display:block;text-align:center;width:100%;box-sizing:border-box;padding:14px 16px;border-radius:999px;border:1px solid var(--field-bd);background:linear-gradient(90deg,rgba(60,103,227,.25),rgba(139,92,246,.25));color:#eef;font-weight:900;text-decoration:none;user-select:none;cursor:grab}
-    .draglet:active{cursor:grabbing}
-    .actions{display:flex;gap:8px;justify-content:flex-end;margin-top:12px}
-    .toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#0a1a2e;border:1px solid #1e293b;padding:10px 14px;border-radius:10px;color:#e2f3ff;display:none;z-index:60}
-  </style>
+    <base target="_top">
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;700&display=swap" rel="stylesheet">
+    <title>R² Solutions · GPT → DOCX Converter</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <style>
+      :root{
+        --font:'Plus Jakarta Sans',sans-serif;
+        --navy:#0a041a; --blue:#3c67e3; --violet:#8b5cf6;
+        --light:#e2e8f0; --panel:rgba(20,15,40,.6); --panel-bd:rgba(139,92,246,.35);
+        --field-bd:rgba(139,92,246,.35); --bd:#1f2937; --backdrop:rgba(4,7,20,.72);
+      }
+      html,body{margin:0;padding:0;height:100%;font-family:var(--font);background:var(--navy);color:var(--light);}
+      body{display:flex;justify-content:center;text-align:center}
+      body::before{content:'';position:fixed;left:0;top:0;width:520px;height:520px;background:radial-gradient(circle,var(--blue),var(--violet));filter:blur(180px);opacity:.35;pointer-events:none;animation:pan 22s ease-in-out infinite alternate;z-index:0}
+      @keyframes pan{from{transform:translate(-40%,-40%) scale(1)}to{transform:translate(40%,40%) scale(1.5)}}
+      .main{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;gap:1rem;padding:2rem 2rem 4rem;width:100%}
+      .logo{width:min(900px,92vw);height:auto;display:block;margin:0 auto;transform:translateX(60px)}
+      .sub{font-size:1.06rem;font-weight:400;max-width:900px;line-height:1.5;margin-top:.25rem;background:linear-gradient(90deg,#a7b7e8,#c6b2f8);-webkit-background-clip:text;background-clip:text;color:transparent}
+      .box{margin-top:1.2rem;width:clamp(360px,92vw,1100px);background:var(--panel);border:1px solid var(--panel-bd);border-radius:20px;box-shadow:0 8px 32px rgba(0,0,0,.45);overflow:visible;display:flex;flex-direction:column;backdrop-filter:blur(10px)}
+      .hdr{display:flex;align-items:center;justify-content:space-between;padding:.9rem 1.2rem;background:linear-gradient(90deg,var(--blue),var(--violet))}
+      .hdr .l{display:flex;align-items:baseline;gap:10px}
+      .hdr .title{font-weight:700;color:#fff;font-size:1.15rem}
+      .hdr .v{font-weight:500;color:rgba(255,255,255,.8);font-size:.86rem}
+      .dots{display:flex;gap:7px}.dot{width:10px;height:10px;border-radius:50%;background:rgba(255,255,255,.35)}
+      .body{padding:18px;display:flex;flex-direction:column;gap:14px;text-align:left}
+      .md{width:100%;min-height:320px;resize:vertical;background:#0a0f1e;border:1px solid var(--field-bd);color:#e2e8f0;border-radius:12px;padding:16px;box-sizing:border-box;font-size:1.05rem;line-height:1.6;outline:none}
+      .controls{display:flex;gap:.8rem;flex-wrap:wrap;align-items:center;margin-top:10px}
+      .filename{background:#0a0f1e;border:1px solid var(--field-bd);color:#e2e8f0;border-radius:12px;padding:.75rem 1rem;min-width:260px;flex:1}
+      .btn{appearance:none;border:1px solid var(--bd);background:#10192e;color:#e6faff;border-radius:12px;padding:.75rem 1rem;font-weight:800;cursor:pointer;transition:.18s}
+      .btn:hover{transform:translateY(-1px);border-color:#8b5cf6}
+      .btn.good{border-color:#15b57b}
+      /* Modal */
+      .backdrop{position:fixed;inset:0;background:var(--backdrop);display:none;z-index:50}
+      .modal{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);width:min(560px,92vw);background:#0b1022;border:1px solid var(--panel-bd);border-radius:16px;padding:18px;box-shadow:0 20px 50px rgba(0,0,0,.6);display:none;z-index:51;text-align:left}
+      .modal h3{margin:0 0 8px}
+      .choice{display:flex;flex-direction:column;row-gap:14px;margin:12px 0}
+      .draglet{display:block;text-align:center;width:100%;box-sizing:border-box;padding:14px 16px;border-radius:999px;border:1px solid var(--field-bd);background:linear-gradient(90deg,rgba(60,103,227,.25),rgba(139,92,246,.25));color:#eef;font-weight:900;text-decoration:none;user-select:none;cursor:grab}
+      .draglet:active{cursor:grabbing}
+      .actions{display:flex;gap:8px;justify-content:flex-end;margin-top:12px}
+      .toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#0a1a2e;border:1px solid #1e293b;padding:10px 14px;border-radius:10px;color:#e2f3ff;display:none;z-index:60}
+    </style>
 </head>
 <body>
   <div class="main">
@@ -53,17 +54,17 @@
 
     <div class="box">
       <div class="hdr">
-        <div class="l"><span class="title">R² Solutions · GPT → DOCX Converter</span><span class="v">v2.0</span></div>
+        <div class="l"><span class="title">R² Solutions · GPT → DOCX Converter</span><span class="v">v3.0</span></div>
         <div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
       </div>
       <div class="body">
         <textarea id="md" class="md" placeholder="Paste ChatGPT HTML here (use the bookmarklet)"></textarea>
         <div class="controls">
           <input id="filename" class="filename" type="text" value="R2 GPT Export.docx"/>
-          <button id="btnPaste" class="btn">Paste from Clipboard</button>
-          <button id="btnDocx" class="btn good" title="Build a native .docx (no CDNs)">Download .docx</button>
-          <button id="btnClear" class="btn" style="background:#0f1a2e">Clear</button>
-          <button id="btnBm" class="btn" title="Install the one-click ChatGPT copier">Get Bookmarklet</button>
+          <button onclick="testPaste()" class="btn">Paste from Clipboard</button>
+          <button onclick="testDownload()" class="btn good" title="Build a native .docx (no CDNs)">Download .docx</button>
+          <button onclick="testClear()" class="btn" style="background:#0f1a2e">Clear</button>
+          <button onclick="testAlert()" class="btn" title="Install the one-click ChatGPT copier">Get Bookmarklet</button>
         </div>
       </div>
     </div>
@@ -78,675 +79,137 @@
       <a id="dragAll"  class="draglet" href="#" draggable="true">R2 GPT Convert — Whole</a>
     </div>
     <div class="actions">
-      <button id="closeBm" class="btn" style="background:#0f1a2e">Close</button>
+      <button onclick="closeModal()" class="btn" style="background:#0f1a2e">Close</button>
     </div>
   </div>
   <div id="toast" class="toast"></div>
 
   <script>
-    // Simple and robust DOCX generation for Google Apps Script
-    console.log('Script loading...');
-    const enc = new TextEncoder();
+    function testClear() {
+      console.log('Clear button clicked');
+      document.getElementById('md').value = '';
+      alert('Cleared!');
+    }
     
-    /* ---------- Toast ---------- */
-    const toast = document.getElementById('toast');
-    function showToast(m){ toast.textContent=m; toast.style.display='block'; setTimeout(()=>toast.style.display='none', 3000); }
-
-    // XML escaping function
-    function escapeXml(text) {
-      if (!text) return '';
-      return String(text)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&apos;')
-        .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
+    function testPaste() {
+      console.log('Paste button clicked');
+      navigator.clipboard.readText().then(function(text) {
+        if (text && text.trim()) {
+          document.getElementById('md').value = text;
+          alert('Pasted text from clipboard!');
+        } else {
+          alert('No text in clipboard!');
+        }
+      }).catch(function(error) {
+        alert('Clipboard access failed. Try manual paste.');
+      });
     }
-
-    // Clean HTML content
-    function cleanHtml(html) {
-      const parser = new DOMParser();
-      const doc = parser.parseFromString(html, 'text/html');
-      
-      // Remove unwanted elements
-      doc.querySelectorAll('script, style, noscript, iframe, svg, path').forEach(el => el.remove());
-      
-      // Extract tables from wrapper divs
-      doc.querySelectorAll('div[class*="tableContainer"], div[class*="tableWrapper"]').forEach(wrapper => {
-        const table = wrapper.querySelector('table');
-        if (table) {
-          wrapper.parentNode.insertBefore(table, wrapper);
-        }
-        wrapper.remove();
-      });
-      
-      // Clean attributes
-      doc.querySelectorAll('*').forEach(el => {
-        // Remove problematic attributes
-        const attrsToRemove = ['style', 'class', 'data-*', 'aria-*', 'rel'];
-        Array.from(el.attributes).forEach(attr => {
-          if (attrsToRemove.some(pattern => 
-            pattern.endsWith('*') ? attr.name.startsWith(pattern.slice(0, -1)) : attr.name === pattern
-          )) {
-            el.removeAttribute(attr.name);
-          }
-        });
-        
-        // Remove href from non-anchor elements
-        if (el.tagName !== 'A' && el.hasAttribute('href')) {
-          el.removeAttribute('href');
-        }
-      });
-      
-      // Handle special elements
-      doc.querySelectorAll('hr').forEach(hr => {
-        const p = doc.createElement('p');
-        p.textContent = '';
-        hr.replaceWith(p);
-      });
-      
-      // Clean up empty elements
-      doc.querySelectorAll('*').forEach(el => {
-        if (el.children.length === 0 && !el.textContent.trim()) {
-          el.remove();
-        }
-      });
-      
-      return doc.body.innerHTML;
-    }
-
-    // Generate Word XML content
-    function generateWordXml(html) {
-      const cleanContent = cleanHtml(html);
-      const parser = new DOMParser();
-      const doc = parser.parseFromString(cleanContent, 'text/html');
-      
-      let content = '';
-      
-      function processNode(node) {
-        if (node.nodeType === Node.TEXT_NODE) {
-          const text = node.textContent.trim();
-          if (text) {
-            content += `<w:r><w:t xml:space="preserve">${escapeXml(text)}</w:t></w:r>`;
-          }
-          return;
-        }
-        
-        if (node.nodeType !== Node.ELEMENT_NODE) return;
-        
-        const tag = node.tagName.toLowerCase();
-        
-        switch (tag) {
-          case 'h1':
-          case 'h2':
-          case 'h3':
-          case 'h4':
-          case 'h5':
-          case 'h6':
-            const level = tag.charAt(1);
-            content += `<w:p><w:pPr><w:pStyle w:val="Heading${level}"/></w:pPr>`;
-            Array.from(node.childNodes).forEach(processNode);
-            content += `</w:p>`;
-            break;
-            
-          case 'p':
-            content += `<w:p><w:pPr><w:spacing w:after="240"/></w:pPr>`;
-            Array.from(node.childNodes).forEach(processNode);
-            content += `</w:p>`;
-            break;
-            
-          case 'strong':
-          case 'b':
-            content += `<w:r><w:rPr><w:b/></w:rPr>`;
-            Array.from(node.childNodes).forEach(processNode);
-            content += `</w:r>`;
-            break;
-            
-          case 'em':
-          case 'i':
-            content += `<w:r><w:rPr><w:i/></w:rPr>`;
-            Array.from(node.childNodes).forEach(processNode);
-            content += `</w:r>`;
-            break;
-            
-          case 'code':
-            content += `<w:r><w:rPr><w:rStyle w:val="Code"/></w:rPr>`;
-            Array.from(node.childNodes).forEach(processNode);
-            content += `</w:r>`;
-            break;
-            
-          case 'ul':
-          case 'ol':
-            const isOrdered = tag === 'ol';
-            const numId = isOrdered ? 2 : 1;
-            Array.from(node.children).forEach((li, index) => {
-              content += `<w:p><w:pPr><w:numPr><w:ilvl w:val="0"/><w:numId w:val="${numId}"/></w:numPr></w:pPr>`;
-              Array.from(li.childNodes).forEach(processNode);
-              content += `</w:p>`;
-            });
-            break;
-            
-          case 'table':
-            content += generateTableXml(node);
-            break;
-            
-          case 'blockquote':
-            content += `<w:p><w:pPr><w:pStyle w:val="BlockQuote"/></w:pPr>`;
-            Array.from(node.childNodes).forEach(processNode);
-            content += `</w:p>`;
-            break;
-            
-          case 'pre':
-            const codeText = node.textContent || '';
-            const lines = codeText.split('\n');
-            lines.forEach(line => {
-              if (line.trim()) {
-                content += `<w:p><w:pPr><w:pStyle w:val="CodeBlock"/></w:pPr><w:r><w:rPr><w:rStyle w:val="Code"/></w:rPr><w:t xml:space="preserve">${escapeXml(line)}</w:t></w:r></w:p>`;
-              }
-            });
-            break;
-            
-          default:
-            Array.from(node.childNodes).forEach(processNode);
-            break;
-        }
+    
+    function testDownload() {
+      console.log('Download button clicked');
+      const content = document.getElementById('md').value;
+      if (!content.trim()) {
+        alert('No content to download!');
+        return;
       }
       
-      Array.from(doc.childNodes).forEach(processNode);
+      console.log('Content:', content);
+      console.log('docx library available:', typeof docx);
       
-      return content;
-    }
-
-    function generateTableXml(table) {
-      let tableXml = `<w:tbl><w:tblPr><w:tblW w:w="5000" w:type="pct"/></w:tblPr>`;
+      // Use JSZip to create a proper DOCX
+      const zip = new JSZip();
       
-      const rows = table.querySelectorAll('tr');
-      rows.forEach((row, rowIndex) => {
-        tableXml += `<w:tr>`;
-        const cells = row.querySelectorAll('td, th');
-        cells.forEach(cell => {
-          const isHeader = cell.tagName === 'TH';
-          const shading = isHeader ? '<w:shd w:fill="EFF3F8"/>' : '';
-          tableXml += `<w:tc><w:tcPr>${shading}</w:tcPr><w:p><w:r><w:t>${escapeXml(cell.textContent || '')}</w:t></w:r></w:p></w:tc>`;
-        });
-        tableXml += `</w:tr>`;
-      });
-      
-      tableXml += `</w:tbl>`;
-      return tableXml;
-    }
-
-    // Generate DOCX file
-    function generateDocx(content) {
-      const documentXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
-  <w:body>
-    ${content}
-    <w:sectPr>
-      <w:pgSz w:w="12240" w:h="15840"/>
-      <w:pgMar w:top="1440" w:right="1440" w:bottom="1440" w:left="1440"/>
-    </w:sectPr>
-  </w:body>
-</w:document>`;
-
-      const stylesXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
-  <w:style w:type="paragraph" w:default="1" w:styleId="Normal">
-    <w:name w:val="Normal"/>
-    <w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri"/></w:rPr>
-  </w:style>
-  <w:style w:type="paragraph" w:styleId="Heading1">
-    <w:name w:val="heading 1"/>
-    <w:rPr><w:b/><w:sz w:val="32"/></w:rPr>
-  </w:style>
-  <w:style w:type="paragraph" w:styleId="Heading2">
-    <w:name w:val="heading 2"/>
-    <w:rPr><w:b/><w:sz w:val="28"/></w:rPr>
-  </w:style>
-  <w:style w:type="paragraph" w:styleId="Heading3">
-    <w:name w:val="heading 3"/>
-    <w:rPr><w:b/><w:sz w:val="24"/></w:rPr>
-  </w:style>
-  <w:style w:type="paragraph" w:styleId="BlockQuote">
-    <w:name w:val="Block Quote"/>
-    <w:pPr><w:ind w:left="720"/></w:pPr>
-    <w:rPr><w:i/></w:rPr>
-  </w:style>
-  <w:style w:type="character" w:styleId="Code">
-    <w:name w:val="Code"/>
-    <w:rPr><w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/></w:rPr>
-  </w:style>
-  <w:style w:type="paragraph" w:styleId="CodeBlock">
-    <w:name w:val="Code Block"/>
-    <w:pPr><w:ind w:left="720"/></w:pPr>
-    <w:rPr><w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/></w:rPr>
-  </w:style>
-</w:styles>`;
-
-      const contentTypesXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+      // Add the required files
+      zip.file('[Content_Types].xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
   <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
   <Default Extension="xml" ContentType="application/xml"/>
   <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
-  <Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/>
-</Types>`;
-
-      const relsXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+</Types>`);
+      
+      zip.file('_rels/.rels', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
   <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
-</Relationships>`;
-
-      const docRelsXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
-  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
-</Relationships>`;
-
-      // Create files array
-      const files = [
-        { name: '[Content_Types].xml', content: contentTypesXml },
-        { name: '_rels/.rels', content: relsXml },
-        { name: 'word/_rels/document.xml.rels', content: docRelsXml },
-        { name: 'word/styles.xml', content: stylesXml },
-        { name: 'word/document.xml', content: documentXml }
-      ];
-
-      return createZipFile(files);
-    }
-
-    // Simple ZIP file creation - EXACTLY as it was working locally
-    function createZipFile(files) {
-      const zipData = [];
-      let offset = 0;
-      const centralDirectory = [];
+</Relationships>`);
       
-      Object.entries(files).forEach(([name, content]) => {
-        const contentBytes = enc.encode(content);
-        const nameBytes = enc.encode(name);
-        
-        // Local file header
-        zipData.push(
-          0x50, 0x4B, 0x03, 0x04, // Local file header signature
-          0x14, 0x00, // Version needed to extract
-          0x00, 0x00, // General purpose bit flag
-          0x00, 0x00, // Compression method (store)
-          0x00, 0x00, // Last mod file time
-          0x00, 0x00, // Last mod file date
-          0x00, 0x00, 0x00, 0x00, // CRC32
-          contentBytes.length & 0xFF, (contentBytes.length >> 8) & 0xFF, (contentBytes.length >> 16) & 0xFF, (contentBytes.length >> 24) & 0xFF, // Compressed size
-          contentBytes.length & 0xFF, (contentBytes.length >> 8) & 0xFF, (contentBytes.length >> 16) & 0xFF, (contentBytes.length >> 24) & 0xFF, // Uncompressed size
-          nameBytes.length & 0xFF, (nameBytes.length >> 8) & 0xFF, // File name length
-          0x00, 0x00 // Extra field length
-        );
-        
-        // File name
-        zipData.push(...nameBytes);
-        
-        // File content
-        zipData.push(...contentBytes);
-        
-        // Central directory entry
-        const cdEntry = [
-          0x50, 0x4B, 0x01, 0x02, // Central directory file header signature
-          0x14, 0x00, // Version made by
-          0x14, 0x00, // Version needed to extract
-          0x00, 0x00, // General purpose bit flag
-          0x00, 0x00, // Compression method
-          0x00, 0x00, // Last mod file time
-          0x00, 0x00, // Last mod file date
-          0x00, 0x00, 0x00, 0x00, // CRC32
-          contentBytes.length & 0xFF, (contentBytes.length >> 8) & 0xFF, (contentBytes.length >> 16) & 0xFF, (contentBytes.length >> 24) & 0xFF, // Compressed size
-          contentBytes.length & 0xFF, (contentBytes.length >> 8) & 0xFF, (contentBytes.length >> 16) & 0xFF, (contentBytes.length >> 24) & 0xFF, // Uncompressed size
-          nameBytes.length & 0xFF, (nameBytes.length >> 8) & 0xFF, // File name length
-          0x00, 0x00, // Extra field length
-          0x00, 0x00, // File comment length
-          0x00, 0x00, // Disk number start
-          0x00, 0x00, // Internal file attributes
-          0x00, 0x00, 0x00, 0x00, // External file attributes
-          offset & 0xFF, (offset >> 8) & 0xFF, (offset >> 16) & 0xFF, (offset >> 24) & 0xFF // Relative offset of local header
-        ];
-        
-        centralDirectory.push(...cdEntry, ...nameBytes);
-        
-        offset += 30 + nameBytes.length + contentBytes.length;
-      });
+      zip.file('word/document.xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+  <w:body>
+    <w:p>
+      <w:r>
+        <w:t>${content.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '</w:t></w:r></w:p><w:p><w:r><w:t>')}</w:t>
+      </w:r>
+    </w:p>
+  </w:body>
+</w:document>`);
       
-      // Add central directory
-      zipData.push(...centralDirectory);
-      
-      // End of central directory
-      zipData.push(
-        0x50, 0x4B, 0x05, 0x06, // End of central directory signature
-        0x00, 0x00, // Number of this disk
-        0x00, 0x00, // Number of the disk with the start of the central directory
-        Object.keys(files).length & 0xFF, (Object.keys(files).length >> 8) & 0xFF, // Total number of entries in the central directory on this disk
-        Object.keys(files).length & 0xFF, (Object.keys(files).length >> 8) & 0xFF, // Total number of entries in the central directory
-        centralDirectory.length & 0xFF, (centralDirectory.length >> 8) & 0xFF, (centralDirectory.length >> 16) & 0xFF, (centralDirectory.length >> 24) & 0xFF, // Size of the central directory
-        (zipData.length - centralDirectory.length) & 0xFF, ((zipData.length - centralDirectory.length) >> 8) & 0xFF, ((zipData.length - centralDirectory.length) >> 16) & 0xFF, ((zipData.length - centralDirectory.length) >> 24) & 0xFF, // Offset of start of central directory with respect to the starting disk number
-        0x00, 0x00 // ZIP file comment length
-      );
-      
-      return new Blob([new Uint8Array(zipData)], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
-    }
-
-    /* ---------- UI wires ---------- */
-    console.log('Setting up UI...');
-    const mdEl = document.getElementById('md');
-    console.log('Textarea found:', mdEl);
-    
-    // Add paste handler to textarea
-    mdEl.addEventListener('paste', async (e) => {
-      try {
-        // Check if we have HTML content in clipboard
-        const html = e.clipboardData.getData('text/html');
-        if (html && html.trim()) {
-          e.preventDefault();
-          mdEl.value = cleanHtml(html);
-          showToast('✅ Pasted rich HTML directly.');
-          return;
-        }
-        
-        // Check for plain text
-        const text = e.clipboardData.getData('text/plain');
-        if (text && text.trim()) {
-          // Let default paste happen for plain text
-          showToast('📝 Pasted plain text.');
-        }
-      } catch (error) {
-        console.log('Paste handler error:', error);
-        // Let default paste happen
-      }
-    });
-    document.getElementById('btnPaste').addEventListener('click', async ()=>{
-      console.log('Paste button clicked');
-      try{
-        // Try to read rich HTML first
-        if (navigator.clipboard && navigator.clipboard.read){
-          try {
-            const items = await navigator.clipboard.read();
-            console.log('Clipboard items:', items.length);
-            for (const it of items){
-              console.log('Item types:', it.types);
-              if (it.types.includes('text/html')){
-                const blob = await it.getType('text/html');
-                const html = await blob.text();
-                if (html && html.trim()) {
-                  mdEl.value = cleanHtml(html);
-                  showToast('✅ Pasted rich HTML from clipboard.');
-                  return;
-                }
-              }
-            }
-          } catch (clipboardError) {
-            console.log('Rich clipboard read failed:', clipboardError);
-          }
-        }
-        
-        // Fallback to plain text
-        try {
-          const text = await navigator.clipboard.readText();
-          if (text && text.trim()) {
-            mdEl.value = text;
-            showToast('📝 Pasted plain text from clipboard.');
-          } else {
-            showToast('⚠️ Clipboard appears to be empty.');
-          }
-        } catch (textError) {
-          console.log('Text clipboard read failed:', textError);
-          showToast('❌ Clipboard access blocked. Paste manually (⌘V / Ctrl+V).');
-          mdEl.focus();
-        }
-      } catch (error) {
-        console.error('Paste error:', error);
-        showToast('❌ Paste failed. Try manual paste (⌘V / Ctrl+V).');
-        mdEl.focus();
-      }
-    });
-
-    document.getElementById('btnDocx').addEventListener('click', async ()=>{
-      const raw = (mdEl.value||'').trim(); if(!raw){ alert('Paste content first.'); return; }
-      try {
-
-        
-        // Simple download method - EXACTLY as it was working locally
-        const wordContent = generateWordXml(raw);
-        const blob = generateDocx(wordContent);
-        const base = (document.getElementById('filename').value||'R2 GPT Export').replace(/\.docx$/i,'');
-        const a = document.createElement('a'); 
-        a.href = URL.createObjectURL(blob); 
+      // Generate the ZIP file
+      zip.generateAsync({type: 'blob'}).then(function(blob) {
+        const base = (document.getElementById('filename').value || 'R2 GPT Export').replace(/\.(docx|rtf|txt)$/i, '');
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
         a.download = base + '.docx';
-        document.body.appendChild(a); 
+        document.body.appendChild(a);
         a.click();
-        setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 400);
-        showToast('✅ Building native .docx …');
-      } catch (error) {
-        showToast('❌ DOCX generation failed: ' + error.message);
-        console.error('DOCX error:', error);
-      }
-    });
-
-
-
-    document.getElementById('btnClear').addEventListener('click', ()=>{ mdEl.value=''; });
-
-    // Bookmarklet modal
-    const mb=document.getElementById('mb'), mbBg=document.getElementById('mbBackdrop');
-    function openMb(){ mb.style.display='block'; mbBg.style.display='block'; }
-    function closeMb(){ mb.style.display='none'; mbBg.style.display='none'; }
-    document.getElementById('btnBm').addEventListener('click', ()=>{
-      document.getElementById('dragLast').setAttribute('href', buildBookmarklet(false));
-      document.getElementById('dragAll').setAttribute('href', buildBookmarklet(true));
-      openMb();
-    });
-    document.getElementById('closeBm').addEventListener('click', closeMb);
-    mbBg.addEventListener('click', closeMb);
-
-    // Simple working bookmarklet for ChatGPT
-    function buildBookmarklet(whole){
-      const js = `(function(){
-        try {
-          // Find ChatGPT responses - multiple selectors for different ChatGPT versions
-          const responses = document.querySelectorAll([
-            '[data-message-author-role="assistant"] .markdown',
-            '[data-message-author-role="assistant"] .prose',
-            '.assistant .markdown',
-            '.assistant .prose',
-            '.markdown.prose',
-            '.markdown',
-            '[data-testid="conversation-turn-2"] .markdown',
-            '[data-testid="conversation-turn-2"] .prose'
-          ].join(', '));
-          
-          if (responses.length === 0) {
-            alert('No ChatGPT responses found. Make sure you\\'re on a ChatGPT page.');
-            return;
-          }
-          
-          // Get the last response or all responses
-          const target = ${whole ? 'responses' : '[responses[responses.length-1]]'};
-          
-          // Clean the HTML using the same logic as the main converter
-          function clean(html) {
-            const div = document.createElement('div');
-            div.innerHTML = html;
-            
-            // Remove scripts, styles, and interactive elements
-            div.querySelectorAll('script, style, button, input, select, textarea').forEach(el => el.remove());
-            
-            // Remove ChatGPT-specific elements
-            div.querySelectorAll('[data-message-author-role], .markdown-header, .markdown-footer').forEach(el => el.remove());
-            
-            // Extract tables from wrapper divs before removing them
-            div.querySelectorAll('div').forEach(div => {
-              const table = div.querySelector('table');
-              if (table && div.children.length === 1) {
-                div.parentNode.insertBefore(table, div);
-                div.remove();
-              }
-            });
-            
-            // Remove unwanted attributes
-            div.querySelectorAll('*').forEach(el => {
-              const attrs = el.attributes;
-              for (let i = attrs.length - 1; i >= 0; i--) {
-                const attr = attrs[i];
-                const name = attr.name.toLowerCase();
-                if (name.startsWith('data-') || name === 'style' || name === 'class' || 
-                    name === 'aria-' || name === 'rel' || name === 'role' ||
-                    (name === 'href' && el.tagName !== 'A')) {
-                  el.removeAttribute(name);
-                }
-              }
-            });
-            
-            // Remove empty elements
-            div.querySelectorAll('*').forEach(el => {
-              if (el.children.length === 0 && !el.textContent.trim()) {
-                el.remove();
-              }
-            });
-            
-            return div.innerHTML;
-          }
-          
-          // Process the content
-          const content = Array.from(target).map(el => clean(el.innerHTML)).join('\\n<p></p>\\n');
-          const html = '<!DOCTYPE html><body>' + content + '</body>';
-          
-          // Copy to clipboard
-          if (navigator.clipboard && window.ClipboardItem) {
-            navigator.clipboard.write([
-              new ClipboardItem({
-                'text/html': new Blob([html], { type: 'text/html' })
-              })
-            ]).then(() => {
-              alert('✅ ChatGPT content copied! Now go to your R² converter and paste it.');
-            }).catch(() => {
-              alert('❌ Copy failed. Try manual copy/paste.');
-            });
+        setTimeout(() => {
+          URL.revokeObjectURL(a.href);
+          a.remove();
+        }, 400);
+        alert('✅ DOCX document downloaded!');
+      });
+    }
+    
+    function testAlert() {
+      console.log('Alert button clicked');
+      
+      // Create the actual bookmarklet code
+      const bookmarkletLast = `javascript:(function(){
+        const responses = document.querySelectorAll('[data-message-author-role="assistant"]');
+        if (responses.length > 0) {
+          const lastResponse = responses[responses.length - 1];
+          const content = lastResponse.querySelector('.markdown');
+          if (content) {
+            navigator.clipboard.writeText(content.innerText || content.textContent);
+            alert('Last ChatGPT response copied!');
           } else {
-            alert('❌ Clipboard API not supported. Try manual copy/paste.');
+            alert('Could not find response content');
           }
-          
-        } catch (e) {
-          alert('❌ Error: ' + e.message);
+        } else {
+          alert('No ChatGPT responses found');
         }
       })();`;
       
-      return 'javascript:' + encodeURIComponent(js);
-    }
-
-    // Fallback RTF generation
-    function generateRtf(html) {
-      const cleanContent = cleanHtml(html);
-      const parser = new DOMParser();
-      const doc = parser.parseFromString(cleanContent, 'text/html');
-      
-      let rtf = '{\\rtf1\\ansi\\deff0 {\\fonttbl {\\f0 Times New Roman;}}';
-      rtf += '\\f0\\fs24 ';
-      
-      function processNode(node) {
-        if (node.nodeType === Node.TEXT_NODE) {
-          const text = node.textContent.trim();
-          if (text) {
-            // Escape RTF special characters
-            const escaped = text
-              .replace(/\\/g, '\\\\')
-              .replace(/\{/g, '\\{')
-              .replace(/\}/g, '\\}')
-              .replace(/\n/g, '\\par ');
-            rtf += escaped + ' ';
-          }
-          return;
+      const bookmarkletAll = `javascript:(function(){
+        const responses = document.querySelectorAll('[data-message-author-role="assistant"]');
+        if (responses.length > 0) {
+          let allText = '';
+          responses.forEach(response => {
+            const content = response.querySelector('.markdown');
+            if (content) {
+              allText += (content.innerText || content.textContent) + '\\n\\n';
+            }
+          });
+          navigator.clipboard.writeText(allText.trim());
+          alert('All ChatGPT responses copied!');
+        } else {
+          alert('No ChatGPT responses found');
         }
-        
-        if (node.nodeType !== Node.ELEMENT_NODE) return;
-        
-        const tag = node.tagName.toLowerCase();
-        
-        switch (tag) {
-          case 'h1':
-          case 'h2':
-          case 'h3':
-          case 'h4':
-          case 'h5':
-          case 'h6':
-            rtf += '\\b\\fs32 ';
-            Array.from(node.childNodes).forEach(processNode);
-            rtf += '\\b0\\fs24\\par ';
-            break;
-            
-          case 'p':
-            Array.from(node.childNodes).forEach(processNode);
-            rtf += '\\par ';
-            break;
-            
-          case 'strong':
-          case 'b':
-            rtf += '\\b ';
-            Array.from(node.childNodes).forEach(processNode);
-            rtf += '\\b0 ';
-            break;
-            
-          case 'em':
-          case 'i':
-            rtf += '\\i ';
-            Array.from(node.childNodes).forEach(processNode);
-            rtf += '\\i0 ';
-            break;
-            
-          case 'ul':
-          case 'ol':
-            Array.from(node.children).forEach((li, index) => {
-              rtf += '\\bullet ';
-              Array.from(li.childNodes).forEach(processNode);
-              rtf += '\\par ';
-            });
-            break;
-            
-          case 'table':
-            rtf += '\\par ';
-            const rows = node.querySelectorAll('tr');
-            rows.forEach(row => {
-              const cells = row.querySelectorAll('td, th');
-              cells.forEach(cell => {
-                rtf += '\\cell ';
-                Array.from(cell.childNodes).forEach(processNode);
-              });
-              rtf += '\\row ';
-            });
-            rtf += '\\par ';
-            break;
-            
-          case 'blockquote':
-            rtf += '\\i ';
-            Array.from(node.childNodes).forEach(processNode);
-            rtf += '\\i0\\par ';
-            break;
-            
-          case 'pre':
-            rtf += '\\f1\\fs20 '; // Monospace font
-            const codeText = node.textContent || '';
-            const lines = codeText.split('\n');
-            lines.forEach(line => {
-              if (line.trim()) {
-                rtf += line.replace(/\\/g, '\\\\').replace(/\{/g, '\\{').replace(/\}/g, '\\}') + '\\par ';
-              }
-            });
-            rtf += '\\f0\\fs24 ';
-            break;
-            
-          default:
-            Array.from(node.childNodes).forEach(processNode);
-            break;
-        }
-      }
+      })();`;
       
-      Array.from(doc.childNodes).forEach(processNode);
+      // Update the bookmarklet links
+      document.getElementById('dragLast').href = bookmarkletLast;
+      document.getElementById('dragAll').href = bookmarkletAll;
       
-      rtf += '}';
-      return rtf;
+      document.getElementById('mb').style.display = 'block';
+      document.getElementById('mbBackdrop').style.display = 'block';
     }
+    
+    function closeModal() {
+      document.getElementById('mb').style.display = 'none';
+      document.getElementById('mbBackdrop').style.display = 'none';
+    }
+    
+    console.log('Script loaded successfully');
   </script>
 </body>
 </html>
