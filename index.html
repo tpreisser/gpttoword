@@ -8,6 +8,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;700&display=swap" rel="stylesheet">
     <title>R² Solutions · GPT → DOCX Converter</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.5/jszip.min.js"></script>
     <style>
       :root{
         --font:'Plus Jakarta Sans',sans-serif;
@@ -27,7 +28,6 @@
       .hdr .l{display:flex;align-items:baseline;gap:10px}
       .hdr .title{font-weight:700;color:#fff;font-size:1.15rem}
       .hdr .v{font-weight:500;color:rgba(255,255,255,.8);font-size:.86rem}
-      #status-indicator { font-size: 1.5rem; line-height: 1; vertical-align: middle; color: #e11d48; /* Red by default */ }
       .dots{display:flex;gap:7px}.dot{width:10px;height:10px;border-radius:50%;background:rgba(255,255,255,.35)}
       .body{padding:18px;display:flex;flex-direction:column;gap:14px;text-align:left}
       .md{width:100%;min-height:320px;resize:vertical;background:#0a0f1e;border:1px solid var(--field-bd);color:#e2e8f0;border-radius:12px;padding:16px;box-sizing:border-box;font-size:1.05rem;line-height:1.6;outline:none}
@@ -35,7 +35,6 @@
       .filename{background:#0a0f1e;border:1px solid var(--field-bd);color:#e2e8f0;border-radius:12px;padding:.75rem 1rem;min-width:260px;flex:1}
       .btn{appearance:none;border:1px solid var(--bd);background:#10192e;color:#e6faff;border-radius:12px;padding:.75rem 1rem;font-weight:800;cursor:pointer;transition:.18s}
       .btn:hover{transform:translateY(-1px);border-color:#8b5cf6}
-      .btn:disabled { cursor: not-allowed; opacity: 0.5; }
       .btn.good{border-color:#15b57b}
       .backdrop{position:fixed;inset:0;background:var(--backdrop);display:none;z-index:50}
       .modal{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);width:min(560px,92vw);background:#0b1022;border:1px solid var(--panel-bd);border-radius:16px;padding:18px;box-shadow:0 20px 50px rgba(0,0,0,.6);display:none;z-index:51;text-align:left}
@@ -48,21 +47,17 @@
     <p class="sub">Powered by AI · Built by R² Solutions</p>
     <div class="box">
       <div class="hdr">
-        <div class="l">
-            <span class="title">R² Solutions · GPT → DOCX Converter</span>
-            <span class="v">v5.0</span>
-            <span id="status-indicator" title="Library Status">●</span>
-        </div>
+        <div class="l"><span class="title">R² Solutions · GPT → DOCX Converter</span><span class="v">v8.0</span></div>
         <div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
       </div>
       <div class="body">
-        <textarea id="md" class="md" placeholder="Initializing..."></textarea>
+        <textarea id="md" class="md" placeholder="1. Use bookmarklet in ChatGPT.&#10;2. Paste here.&#10;3. Download."></textarea>
         <div class="controls">
           <input id="filename" class="filename" type="text" value="R2 GPT Export.docx"/>
-          <button id="btn-paste" class="btn">Paste from Clipboard</button>
-          <button id="btn-download" class="btn good">Download .docx</button>
-          <button id="btn-clear" class="btn" style="background:#0f1a2e">Clear</button>
-          <button id="btn-bookmarklet" class="btn">Get Bookmarklet</button>
+          <button onclick="pasteFromClipboard()" class="btn">Paste from Clipboard</button>
+          <button onclick="downloadDocx()" class="btn good">Download .docx</button>
+          <button onclick="clearContent()" class="btn" style="background:#0f1a2e">Clear</button>
+          <button onclick="showBookmarkletModal()" class="btn">Get Bookmarklet</button>
         </div>
       </div>
     </div>
@@ -71,86 +66,132 @@
   <div id="mb" class="modal">
     <h3>Drag your preferred button into your bookmarks bar</h3>
     <div class="choice"> <a id="dragLast" class="draglet" href="#" draggable="true">R2 GPT Convert — Last</a> <a id="dragAll"  class="draglet" href="#" draggable="true">R2 GPT Convert — Whole</a> </div>
-    <div class="actions"> <button id="btn-close-modal" class="btn" style="background:#0f1a2e">Close</button> </div>
+    <div class="actions"> <button onclick="closeModal()" class="btn" style="background:#0f1a2e">Close</button> </div>
   </div>
   <div id="toast" class="toast"></div>
 
-  <script src="./jszip.min.js"></script>
-  <script src="./converter.js"></script>
-  
   <script>
-    const APP = {};
-
-    APP.showToast = (message) => {
+    function showToast(message) {
       const el = document.getElementById('toast');
       el.textContent = message;
       el.style.display = 'block';
       setTimeout(() => el.style.display = 'none', 3000);
-    };
+    }
 
-    document.addEventListener('DOMContentLoaded', () => {
-      const indicator = document.getElementById('status-indicator');
-      const textarea = document.getElementById('md');
-      const allButtons = document.querySelectorAll('.btn');
+    function clearContent() {
+      document.getElementById('md').value = '';
+      showToast('Cleared!');
+    }
 
-      // Check if both libraries loaded successfully
-      if (typeof JSZip === 'function' && typeof htmlDocx !== 'undefined' && typeof htmlDocx.asBlob === 'function') {
-        indicator.style.color = '#22c55e'; // Green
-        indicator.title = 'Ready';
-        textarea.placeholder = "1. Use bookmarklet in ChatGPT.\n2. Paste here.\n3. Download.";
-        console.log('Converter v5.0 Initialized Successfully.');
+    function pasteFromClipboard() {
+      navigator.clipboard.readText().then(text => {
+        if (text) {
+          document.getElementById('md').value = text;
+          showToast('Pasted!');
+        } else {
+          showToast('Clipboard empty!');
+        }
+      }).catch(() => showToast('Paste failed. Use Ctrl+V.'));
+    }
 
-        // Attach events now that we know it's safe
-        document.getElementById('btn-paste').onclick = () => navigator.clipboard.readText().then(text => {
-            if (text) { textarea.value = text; APP.showToast('Pasted!'); } 
-            else { APP.showToast('Clipboard empty!'); }
-        }).catch(() => APP.showToast('Paste failed. Use Ctrl+V.'));
-
-        document.getElementById('btn-clear').onclick = () => {
-            textarea.value = '';
-            APP.showToast('Cleared!');
-        };
-
-        document.getElementById('btn-download').onclick = async () => {
-            const htmlContent = textarea.value;
-            if (!htmlContent.trim()) { return APP.showToast('Nothing to download!'); }
-            const styledHtml = `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>body{font-family:Calibri,sans-serif;font-size:11pt;line-height:1.5}pre{background-color:#f0f0f0;padding:1em;white-space:pre-wrap;font-family:'Courier New',monospace;border:1px solid #ccc;border-radius:4px}code{font-family:'Courier New',monospace}blockquote{border-left:3px solid #ccc;margin-left:1.5em;padding-left:1em;color:#555}table{border-collapse:collapse;width:100%;margin:1em 0}th,td{border:1px solid #ddd;padding:8px}th{background-color:#f2f2f2}</style></head><body>${htmlContent}</body></html>`;
-            try {
-                const fileBlob = await htmlDocx.asBlob(styledHtml);
-                const a = document.createElement('a');
-                a.href = URL.createObjectURL(fileBlob);
-                a.download = `${(document.getElementById('filename').value || 'export').replace(/\.docx$/i, '')}.docx`;
-                a.click();
-                setTimeout(() => URL.revokeObjectURL(a.href), 100);
-                APP.showToast('✅ Downloaded!');
-            } catch (e) {
-                console.error(e);
-                APP.showToast('Error generating DOCX.');
-            }
-        };
-
-        document.getElementById('btn-bookmarklet').onclick = () => {
-            const last = `javascript:(function(){try{const e=document.querySelectorAll('div[data-message-author-role="assistant"]');if(!e.length)return alert("No responses found.");const t=e[e.length-1].querySelector(".markdown,.prose");t?navigator.clipboard.writeText(t.innerHTML).then(()=>alert("Last response HTML copied!")).catch(e=>alert("Failed to copy")):alert("Could not find content.")}catch(e){alert("Error: "+e.message)}})();`;
-            const all = `javascript:(function(){try{const e=document.querySelectorAll('div[data-message-author-role="assistant"]');if(!e.length)return alert("No responses found.");let t="";e.forEach((n,o)=>{const r=n.querySelector(".markdown,.prose");r&&(t+=r.innerHTML,o<e.length-1&&(t+="<hr>"))}),t?navigator.clipboard.writeText(t).then(()=>alert("All responses HTML copied!")).catch(e=>alert("Failed to copy")):alert("No content found.")}catch(e){alert("Error: "+e.message)}})();`;
-            document.getElementById('dragLast').href = last;
-            document.getElementById('dragAll').href = all;
-            document.getElementById('mb').style.display = 'block';
-            document.getElementById('mbBackdrop').style.display = 'block';
-        };
-
-        document.getElementById('btn-close-modal').onclick = () => {
-            document.getElementById('mb').style.display = 'none';
-            document.getElementById('mbBackdrop').style.display = 'none';
-        };
-
-      } else {
-        indicator.style.color = '#ef4444'; // Red
-        indicator.title = 'Error!';
-        textarea.value = `CRITICAL ERROR: A required library failed to load.\n\nPlease ensure these files are in the same folder:\n1. index.html\n2. jszip.min.js\n3. converter.js`;
-        textarea.readOnly = true;
-        allButtons.forEach(btn => btn.disabled = true);
+    function downloadDocx() {
+      const htmlString = document.getElementById('md').value;
+      if (!htmlString.trim()) {
+        showToast('Nothing to download!');
+        return;
       }
-    });
+
+      const zip = new JSZip();
+
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(htmlString, 'text/html');
+      let contentXml = '';
+
+      function processNode(node) {
+        let xml = '';
+        switch (node.nodeName.toLowerCase()) {
+          case 'h1': case 'h2': case 'h3': case 'h4': case 'h5': case 'h6':
+            xml += `<w:p><w:pPr><w:pStyle w:val="${node.nodeName.charAt(0).toUpperCase() + node.nodeName.slice(1)}"/></w:pPr><w:r><w:t>${escapeXml(node.textContent)}</w:t></w:r></w:p>`;
+            break;
+          case 'p':
+            xml += `<w:p><w:r><w:t>${escapeXml(node.textContent)}</w:t></w:r></w:p>`;
+            break;
+          case 'ul':
+            Array.from(node.children).forEach(child => {
+              if (child.nodeName.toLowerCase() === 'li') {
+                xml += `<w:p><w:pPr><w:pStyle w:val="ListParagraph"/><w:numPr><w:ilvl w:val="0"/><w:numId w:val="1"/></w:numPr></w:pPr><w:r><w:t>${escapeXml(child.textContent)}</w:t></w:r></w:p>`;
+              }
+            });
+            break;
+          case 'ol':
+            Array.from(node.children).forEach(child => {
+              if (child.nodeName.toLowerCase() === 'li') {
+                xml += `<w:p><w:pPr><w:pStyle w:val="ListParagraph"/><w:numPr><w:ilvl w:val="0"/><w:numId w:val="2"/></w:numPr></w:pPr><w:r><w:t>${escapeXml(child.textContent)}</w:t></w:r></w:p>`;
+              }
+            });
+            break;
+          case 'b': case 'strong':
+            xml += `<w:r><w:rPr><w:b/></w:rPr><w:t>${escapeXml(node.textContent)}</w:t></w:r>`;
+            break;
+          case 'i': case 'em':
+            xml += `<w:r><w:rPr><w:i/></w:rPr><w:t>${escapeXml(node.textContent)}</w:t></w:r>`;
+            break;
+          case '#text':
+            xml += `<w:r><w:t>${escapeXml(node.textContent)}</w:t></w:r>`;
+            break;
+          default:
+            if (node.childNodes.length > 0) {
+              Array.from(node.childNodes).forEach(child => {
+                xml += processNode(child);
+              });
+            }
+        }
+        return xml;
+      }
+      
+      contentXml = Array.from(doc.body.childNodes).map(processNode).join('');
+
+      zip.file("[Content_Types].xml", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/><Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/></Types>`);
+      zip.file("_rels/.rels", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>`);
+      zip.folder("word").file("_rels/document.xml.rels", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>`);
+      zip.folder("word").file("document.xml", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>${contentXml}</w:body></w:document>`);
+      zip.folder("word").file("styles.xml", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:style w:type="paragraph" w:styleId="H1"><w:name w:val="Heading 1"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:pPr><w:keepNext w:val="1"/><w:spacing w:before="240" w:after="0"/></w:pPr><w:rPr><w:b/><w:sz w:val="32"/></w:rPr></w:style><w:style w:type="paragraph" w:styleId="H2"><w:name w:val="Heading 2"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:pPr><w:keepNext w:val="1"/><w:spacing w:before="200" w:after="0"/></w:pPr><w:rPr><w:b/><w:sz w:val="26"/></w:rPr></w:style><w:style w:type="paragraph" w:styleId="ListParagraph"><w:name w:val="List Paragraph"/><w:basedOn w:val="Normal"/><w:uiPriority w:val="34"/><w:pPr><w:ind w:left="720"/></w:pPr></w:style></w:styles>`);
+
+      zip.generateAsync({ type: "blob" }).then(function(blob) {
+        const filename = (document.getElementById('filename').value || 'export').replace(/\.docx?$/i, '') + '.docx';
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = filename;
+        a.click();
+        showToast('✅ Downloaded!');
+      });
+    }
+
+    function escapeXml(str) {
+      return str.replace(/[<>&'"]/g, function (c) {
+        switch (c) {
+          case '<': return '&lt;';
+          case '>': return '&gt;';
+          case '&': return '&amp;';
+          case '\'': return '&apos;';
+          case '"': return '&quot;';
+        }
+      });
+    }
+
+    function showBookmarkletModal() {
+      const last = `javascript:(function(){try{const e=document.querySelectorAll('div[data-message-author-role="assistant"]');if(!e.length)return alert("No responses found.");const t=e[e.length-1].querySelector(".markdown,.prose");t?navigator.clipboard.writeText(t.innerHTML).then(()=>alert("Last response HTML copied!")).catch(e=>alert("Failed to copy")):alert("Could not find content.")}catch(e){alert("Error: "+e.message)}})();`;
+      const all = `javascript:(function(){try{const e=document.querySelectorAll('div[data-message-author-role="assistant"]');if(!e.length)return alert("No responses found.");let t="";e.forEach((n,o)=>{const r=n.querySelector(".markdown,.prose");r&&(t+=r.innerHTML,o<e.length-1&&(t+="<hr>"))}),t?navigator.clipboard.writeText(t).then(()=>alert("All responses HTML copied!")).catch(e=>alert("No content found."))}catch(e){alert("Error: "+e.message)}})();`;
+      document.getElementById('dragLast').href = last;
+      document.getElementById('dragAll').href = all;
+      document.getElementById('mb').style.display = 'block';
+      document.getElementById('mbBackdrop').style.display = 'block';
+    }
+
+    function closeModal() {
+      document.getElementById('mb').style.display = 'none';
+      document.getElementById('mbBackdrop').style.display = 'none';
+    }
   </script>
 </body>
 </html>
