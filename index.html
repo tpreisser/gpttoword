@@ -354,18 +354,15 @@
       return createZipFile(files);
     }
 
-    // ZIP file creation optimized for web deployment
+    // Simple ZIP file creation - EXACTLY as it was working locally
     function createZipFile(files) {
       const zipData = [];
       let offset = 0;
       const centralDirectory = [];
       
-      // Convert files object to array format
-      const fileEntries = Object.entries(files).map(([name, content]) => ({ name, content }));
-      
-      fileEntries.forEach(file => {
-        const content = enc.encode(file.content);
-        const name = enc.encode(file.name);
+      Object.entries(files).forEach(([name, content]) => {
+        const contentBytes = enc.encode(content);
+        const nameBytes = enc.encode(name);
         
         // Local file header
         zipData.push(
@@ -375,18 +372,18 @@
           0x00, 0x00, // Compression method (store)
           0x00, 0x00, // Last mod file time
           0x00, 0x00, // Last mod file date
-          0x00, 0x00, 0x00, 0x00, // CRC32 (we'll calculate this)
-          content.length & 0xFF, (content.length >> 8) & 0xFF, (content.length >> 16) & 0xFF, (content.length >> 24) & 0xFF, // Compressed size
-          content.length & 0xFF, (content.length >> 8) & 0xFF, (content.length >> 16) & 0xFF, (content.length >> 24) & 0xFF, // Uncompressed size
-          name.length & 0xFF, (name.length >> 8) & 0xFF, // File name length
+          0x00, 0x00, 0x00, 0x00, // CRC32
+          contentBytes.length & 0xFF, (contentBytes.length >> 8) & 0xFF, (contentBytes.length >> 16) & 0xFF, (contentBytes.length >> 24) & 0xFF, // Compressed size
+          contentBytes.length & 0xFF, (contentBytes.length >> 8) & 0xFF, (contentBytes.length >> 16) & 0xFF, (contentBytes.length >> 24) & 0xFF, // Uncompressed size
+          nameBytes.length & 0xFF, (nameBytes >> 8) & 0xFF, // File name length
           0x00, 0x00 // Extra field length
         );
         
         // File name
-        zipData.push(...name);
+        zipData.push(...nameBytes);
         
         // File content
-        zipData.push(...content);
+        zipData.push(...contentBytes);
         
         // Central directory entry
         const cdEntry = [
@@ -398,9 +395,9 @@
           0x00, 0x00, // Last mod file time
           0x00, 0x00, // Last mod file date
           0x00, 0x00, 0x00, 0x00, // CRC32
-          content.length & 0xFF, (content.length >> 8) & 0xFF, (content.length >> 16) & 0xFF, (content.length >> 24) & 0xFF, // Compressed size
-          content.length & 0xFF, (content.length >> 8) & 0xFF, (content.length >> 16) & 0xFF, (content.length >> 24) & 0xFF, // Uncompressed size
-          name.length & 0xFF, (name.length >> 8) & 0xFF, // File name length
+          contentBytes.length & 0xFF, (contentBytes.length >> 8) & 0xFF, (contentBytes.length >> 16) & 0xFF, (contentBytes.length >> 24) & 0xFF, // Compressed size
+          contentBytes.length & 0xFF, (contentBytes.length >> 8) & 0xFF, (contentBytes.length >> 16) & 0xFF, (contentBytes.length >> 24) & 0xFF, // Uncompressed size
+          nameBytes.length & 0xFF, (nameBytes >> 8) & 0xFF, // File name length
           0x00, 0x00, // Extra field length
           0x00, 0x00, // File comment length
           0x00, 0x00, // Disk number start
@@ -409,9 +406,9 @@
           offset & 0xFF, (offset >> 8) & 0xFF, (offset >> 16) & 0xFF, (offset >> 24) & 0xFF // Relative offset of local header
         ];
         
-        centralDirectory.push(...cdEntry, ...name);
+        centralDirectory.push(...cdEntry, ...nameBytes);
         
-        offset += 30 + name.length + content.length;
+        offset += 30 + nameBytes.length + contentBytes.length;
       });
       
       // Add central directory
@@ -422,8 +419,8 @@
         0x50, 0x4B, 0x05, 0x06, // End of central directory signature
         0x00, 0x00, // Number of this disk
         0x00, 0x00, // Number of the disk with the start of the central directory
-        fileEntries.length & 0xFF, (fileEntries.length >> 8) & 0xFF, // Total number of entries in the central directory on this disk
-        fileEntries.length & 0xFF, (fileEntries.length >> 8) & 0xFF, // Total number of entries in the central directory
+        Object.keys(files).length & 0xFF, (Object.keys(files).length >> 8) & 0xFF, // Total number of entries in the central directory on this disk
+        Object.keys(files).length & 0xFF, (Object.keys(files).length >> 8) & 0xFF, // Total number of entries in the central directory
         centralDirectory.length & 0xFF, (centralDirectory.length >> 8) & 0xFF, (centralDirectory.length >> 16) & 0xFF, (centralDirectory.length >> 24) & 0xFF, // Size of the central directory
         (zipData.length - centralDirectory.length) & 0xFF, ((zipData.length - centralDirectory.length) >> 8) & 0xFF, ((zipData.length - centralDirectory.length) >> 16) & 0xFF, ((zipData.length - centralDirectory.length) >> 24) & 0xFF, // Offset of start of central directory with respect to the starting disk number
         0x00, 0x00 // ZIP file comment length
@@ -511,26 +508,17 @@
       try {
 
         
-        // Use browser method for GitHub Pages
-        try {
-          const wordContent = generateWordXml(raw);
-          console.log('Word XML generated, length:', wordContent.length);
-          
-          const blob = generateDocx(wordContent);
-          console.log('DOCX blob created, size:', blob.size, 'bytes');
-          
-          const base = (document.getElementById('filename').value||'R2 GPT Export').replace(/\.docx$/i,'');
-          const a = document.createElement('a'); 
-          a.href = URL.createObjectURL(blob); 
-          a.download = base + '.docx';
-          document.body.appendChild(a); 
-          a.click();
-          setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 400);
-          showToast('✅ DOCX file generated successfully!');
-        } catch (error) {
-          console.error('DOCX generation error:', error);
-          showToast('❌ DOCX generation failed: ' + error.message);
-        }
+        // Simple download method - EXACTLY as it was working locally
+        const wordContent = generateWordXml(raw);
+        const blob = generateDocx(wordContent);
+        const base = (document.getElementById('filename').value||'R2 GPT Export').replace(/\.docx$/i,'');
+        const a = document.createElement('a'); 
+        a.href = URL.createObjectURL(blob); 
+        a.download = base + '.docx';
+        document.body.appendChild(a); 
+        a.click();
+        setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 400);
+        showToast('✅ Building native .docx …');
       } catch (error) {
         showToast('❌ DOCX generation failed: ' + error.message);
         console.error('DOCX error:', error);
