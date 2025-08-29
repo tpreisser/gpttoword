@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;700&display=swap" rel="stylesheet">
     <title>R² Solutions · GPT → DOCX Converter</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://unpkg.com/html-docx-js-typescript/dist/html-docx.js"></script>
     <style>
       :root{
         --font:'Plus Jakarta Sans',sans-serif;
@@ -44,7 +44,7 @@
       .draglet{display:block;text-align:center;width:100%;box-sizing:border-box;padding:14px 16px;border-radius:999px;border:1px solid var(--field-bd);background:linear-gradient(90deg,rgba(60,103,227,.25),rgba(139,92,246,.25));color:#eef;font-weight:900;text-decoration:none;user-select:none;cursor:grab}
       .draglet:active{cursor:grabbing}
       .actions{display:flex;gap:8px;justify-content:flex-end;margin-top:12px}
-      .toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#0a1a2e;border:1px solid #1e293b;padding:10px 14px;border-radius:10px;color:#e2f3ff;display:none;z-index:60}
+      .toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#0a1a2e;border:1px solid #1e293b;padding:10px 14px;border-radius:10px;color:#e2f3ff;display:none;z-index:60;transition:opacity .3s}
     </style>
 </head>
 <body>
@@ -58,19 +58,18 @@
         <div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
       </div>
       <div class="body">
-        <textarea id="md" class="md" placeholder="Paste ChatGPT HTML here (use the bookmarklet)"></textarea>
+        <textarea id="md" class="md" placeholder="1. Click the bookmarklet in ChatGPT.&#10;2. Click 'Paste from Clipboard' here.&#10;3. Click 'Download .docx'."></textarea>
         <div class="controls">
           <input id="filename" class="filename" type="text" value="R2 GPT Export.docx"/>
-          <button onclick="testPaste()" class="btn">Paste from Clipboard</button>
-          <button onclick="testDownload()" class="btn good" title="Build a native .docx (no CDNs)">Download .docx</button>
-          <button onclick="testClear()" class="btn" style="background:#0f1a2e">Clear</button>
-          <button onclick="testAlert()" class="btn" title="Install the one-click ChatGPT copier">Get Bookmarklet</button>
+          <button onclick="pasteFromClipboard()" class="btn">Paste from Clipboard</button>
+          <button onclick="downloadDocx()" class="btn good" title="Build a native .docx (no CDNs)">Download .docx</button>
+          <button onclick="clearContent()" class="btn" style="background:#0f1a2e">Clear</button>
+          <button onclick="showBookmarkletModal()" class="btn" title="Install the one-click ChatGPT copier">Get Bookmarklet</button>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Bookmarklet Modal -->
   <div id="mbBackdrop" class="backdrop"></div>
   <div id="mb" class="modal">
     <h3>Drag your preferred button into your bookmarks bar</h3>
@@ -85,471 +84,180 @@
   <div id="toast" class="toast"></div>
 
   <script>
-    function testClear() {
-      console.log('Clear button clicked');
+    /**
+     * Shows a toast notification at the bottom of the screen.
+     * @param {string} message - The message to display.
+     */
+    function showToast(message) {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.style.display = 'block';
+      toast.style.opacity = 1;
+      setTimeout(() => {
+        toast.style.opacity = 0;
+        setTimeout(() => { toast.style.display = 'none'; }, 300);
+      }, 3000);
+    }
+
+    /**
+     * Clears the main textarea content.
+     */
+    function clearContent() {
       document.getElementById('md').value = '';
-      alert('Cleared!');
+      showToast('Cleared!');
     }
     
-    function testPaste() {
-      console.log('Paste button clicked');
-      navigator.clipboard.readText().then(function(text) {
+    /**
+     * Pastes HTML content from the clipboard into the textarea.
+     */
+    function pasteFromClipboard() {
+      navigator.clipboard.readText().then(text => {
         if (text && text.trim()) {
           document.getElementById('md').value = text;
-          alert('Pasted text from clipboard!');
+          showToast('Pasted HTML from clipboard!');
         } else {
-          alert('No text in clipboard!');
+          showToast('Clipboard is empty!');
         }
-      }).catch(function(error) {
-        alert('Clipboard access failed. Try manual paste.');
+      }).catch(err => {
+        console.error('Clipboard access failed:', err);
+        showToast('Clipboard access failed. Use Ctrl+V to paste manually.');
       });
     }
     
-    function testDownload() {
-      console.log('Download button clicked');
-      const content = document.getElementById('md').value;
-      if (!content.trim()) {
-        alert('No content to download!');
+    /**
+     * Converts the HTML in the textarea to a DOCX file and downloads it.
+     */
+    async function downloadDocx() {
+      const htmlContent = document.getElementById('md').value;
+      if (!htmlContent.trim()) {
+        showToast('Nothing to download!');
         return;
       }
       
-      console.log('Content:', content);
-      console.log('docx library available:', typeof docx);
-      
-      // Use JSZip to create a proper DOCX
-      const zip = new JSZip();
-      
-      // Add the required files
-      zip.file('[Content_Types].xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
-  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
-  <Default Extension="xml" ContentType="application/xml"/>
-  <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
-  <Override PartName="/word/numbering.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.numbering+xml"/>
-  <Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/>
-</Types>`);
-      
-      zip.file('_rels/.rels', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
-  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
-  <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/numbering" Target="word/numbering.xml"/>
-  <Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="word/styles.xml"/>
-</Relationships>`);
-      
-      // Parse HTML content and convert to Word XML
-      function htmlToWordXml(htmlContent) {
-        // Create a temporary div to parse HTML
-        const tempDiv = document.createElement('div');
-        tempDiv.innerHTML = htmlContent;
-        
-        let wordXml = '';
-        
-        // Process each child node
-        function processNode(node) {
-          if (node.nodeType === Node.TEXT_NODE) {
-            // Plain text
-            const text = node.textContent.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-            if (text.trim()) {
-              wordXml += `<w:t>${text}</w:t>`;
-            }
-          } else if (node.nodeType === Node.ELEMENT_NODE) {
-            const tagName = node.tagName.toLowerCase();
-            
-            switch (tagName) {
-              case 'h1':
-              case 'h2':
-              case 'h3':
-              case 'h4':
-              case 'h5':
-              case 'h6':
-                // Headers
-                wordXml += `<w:p><w:pPr><w:pStyle w:val="Heading${tagName.charAt(1)}"/></w:pPr><w:r><w:rPr><w:b/><w:sz w:val="${32 - (tagName.charAt(1) * 2)}"/></w:rPr>`;
-                Array.from(node.childNodes).forEach(processNode);
-                wordXml += `</w:r></w:p>`;
-                break;
-                
-              case 'p':
-                // Paragraphs with spacing
-                wordXml += `<w:p><w:pPr><w:spacing w:before="120" w:after="120"/></w:pPr><w:r>`;
-                Array.from(node.childNodes).forEach(processNode);
-                wordXml += `</w:r></w:p>`;
-                break;
-                
-              case 'strong':
-              case 'b':
-                // Bold text
-                wordXml += `<w:r><w:rPr><w:b/></w:rPr>`;
-                Array.from(node.childNodes).forEach(processNode);
-                wordXml += `</w:r>`;
-                break;
-                
-              case 'em':
-              case 'i':
-                // Italic text
-                wordXml += `<w:r><w:rPr><w:i/></w:rPr>`;
-                Array.from(node.childNodes).forEach(processNode);
-                wordXml += `</w:r>`;
-                break;
-                
-              case 'code':
-                // Code (monospace)
-                wordXml += `<w:r><w:rPr><w:rFonts w:ascii="Courier New" w:hAnsi="Courier New"/></w:rPr>`;
-                Array.from(node.childNodes).forEach(processNode);
-                wordXml += `</w:r>`;
-                break;
-                
-              case 'pre':
-                // Code block
-                wordXml += `<w:p><w:pPr><w:pStyle w:val="CodeBlock"/></w:pPr><w:r><w:rPr><w:rFonts w:ascii="Courier New" w:hAnsi="Courier New"/></w:rPr>`;
-                Array.from(node.childNodes).forEach(processNode);
-                wordXml += `</w:r></w:p>`;
-                break;
-                
-              case 'ul':
-                // Unordered list
-                Array.from(node.children).forEach(li => {
-                  if (li.tagName.toLowerCase() === 'li') {
-                    wordXml += `<w:p><w:pPr><w:numPr><w:ilvl w:val="0"/><w:numId w:val="1"/></w:numPr></w:pPr><w:r>`;
-                    Array.from(li.childNodes).forEach(processNode);
-                    wordXml += `</w:r></w:p>`;
-                  }
-                });
-                break;
-                
-              case 'ol':
-                // Ordered list
-                Array.from(node.children).forEach((li, index) => {
-                  if (li.tagName.toLowerCase() === 'li') {
-                    wordXml += `<w:p><w:pPr><w:numPr><w:ilvl w:val="0"/><w:numId w:val="2"/></w:numPr></w:pPr><w:r>`;
-                    Array.from(li.childNodes).forEach(processNode);
-                    wordXml += `</w:r></w:p>`;
-                  }
-                });
-                break;
-                
-              case 'table':
-                // Table with proper structure and shading
-                wordXml += `<w:tbl><w:tblPr><w:tblStyle w:val="TableGrid"/><w:tblW w:w="0" w:type="auto"/></w:tblPr>`;
-                Array.from(node.children).forEach(processNode);
-                wordXml += `</w:tbl>`;
-                break;
-                
-              case 'tr':
-                // Table row
-                wordXml += `<w:tr>`;
-                Array.from(node.children).forEach(processNode);
-                wordXml += `</w:tr>`;
-                break;
-                
-              case 'td':
-                // Table cell (regular)
-                wordXml += `<w:tc><w:tcPr><w:tcW w:w="2000" w:type="dxa"/><w:shd w:val="clear" w:color="auto" w:fill="FFFFFF"/></w:tcPr><w:p><w:r>`;
-                Array.from(node.childNodes).forEach(processNode);
-                wordXml += `</w:r></w:p></w:tc>`;
-                break;
-                
-              case 'th':
-                // Table header cell (shaded)
-                wordXml += `<w:tc><w:tcPr><w:tcW w:w="2000" w:type="dxa"/><w:shd w:val="clear" w:color="auto" w:fill="E7E6E6"/></w:tcPr><w:p><w:r><w:rPr><w:b/></w:rPr>`;
-                Array.from(node.childNodes).forEach(processNode);
-                wordXml += `</w:r></w:p></w:tc>`;
-                break;
-                
-              case 'br':
-                // Line break
-                wordXml += `</w:r></w:p><w:p><w:r>`;
-                break;
-                
-              case 'hr':
-                // Horizontal line/divider
-                wordXml += `</w:r></w:p><w:p><w:pPr><w:pBdr><w:bottom w:val="single" w:sz="6" w:space="1" w:color="CCCCCC"/></w:pBdr><w:spacing w:before="240" w:after="240"/></w:pPr><w:r><w:t></w:t></w:r></w:p><w:p><w:r>`;
-                break;
-                
-              case 'div':
-                // Check for dividers or sections
-                if (node.className && (node.className.includes('divider') || node.className.includes('separator') || node.className.includes('border'))) {
-                  // Add extra spacing for dividers
-                  wordXml += `</w:r></w:p><w:p><w:pPr><w:spacing w:before="360" w:after="360"/></w:pPr><w:r><w:t></w:t></w:r></w:p><w:p><w:r>`;
-                } else {
-                  // Regular div with extra spacing
-                  wordXml += `</w:r></w:p><w:p><w:pPr><w:spacing w:before="120" w:after="120"/></w:pPr><w:r>`;
-                  Array.from(node.childNodes).forEach(processNode);
-                  wordXml += `</w:r></w:p><w:p><w:r>`;
-                }
-                break;
-                
-              default:
-                // Process child nodes for unknown tags
-                Array.from(node.childNodes).forEach(processNode);
-                break;
-            }
-          }
-        }
-        
-        // Process all nodes
-        Array.from(tempDiv.childNodes).forEach(processNode);
-        
-        return wordXml;
+      // Verify the conversion library is available.
+      if (typeof htmlDocx === 'undefined') {
+        showToast('Error: Conversion library not loaded. Check internet connection.');
+        return;
       }
       
-      // Convert content to Word XML
-      const wordContent = htmlToWordXml(content);
-      
-      zip.file('word/document.xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
-  <w:body>
-    ${wordContent}
-  </w:body>
-</w:document>`);
-      
-      // Add numbering definitions for lists
-      zip.file('word/numbering.xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<w:numbering xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
-  <w:abstractNum w:abstractNumId="0">
-    <w:nsid w:val="00000001"/>
-    <w:multiLevelType w:val="hybridMultilevel"/>
-    <w:lvl w:ilvl="0">
-      <w:start w:val="1"/>
-      <w:numFmt w:val="bullet"/>
-      <w:lvlText w:val="•"/>
-      <w:lvlJc w:val="left"/>
-      <w:pPr><w:ind w:left="720" w:hanging="360"/></w:pPr>
-      <w:rPr><w:rFonts w:ascii="Symbol" w:hAnsi="Symbol" w:hint="default"/></w:rPr>
-    </w:lvl>
-  </w:abstractNum>
-  <w:abstractNum w:abstractNumId="1">
-    <w:nsid w:val="00000002"/>
-    <w:multiLevelType w:val="hybridMultilevel"/>
-    <w:lvl w:ilvl="0">
-      <w:start w:val="1"/>
-      <w:numFmt w:val="decimal"/>
-      <w:lvlText w:val="%1."/>
-      <w:lvlJc w:val="left"/>
-      <w:pPr><w:ind w:left="720" w:hanging="360"/></w:pPr>
-    </w:lvl>
-  </w:abstractNum>
-  <w:num w:numId="1">
-    <w:abstractNumId w:val="0"/>
-  </w:num>
-  <w:num w:numId="2">
-    <w:abstractNumId w:val="1"/>
-  </w:num>
-</w:numbering>`);
-      
-      // Add styles for headers and formatting
-      zip.file('word/styles.xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
-  <w:docDefaults>
-    <w:rPrDefault>
-      <w:rPr>
-        <w:rFonts w:ascii="Calibri" w:eastAsia="Calibri" w:hAnsi="Calibri" w:cs="Calibri"/>
-        <w:lang w:val="en-US" w:eastAsia="en-US" w:bidi="ar-SA"/>
-      </w:rPr>
-    </w:rPrDefault>
-  </w:docDefaults>
-  <w:latentStyles w:defLockedState="0" w:defUIPriority="99" w:defSemiHidden="0" w:defUnhideWhenUsed="0" w:defQFormat="0" w:count="371">
-    <w:lsdException w:name="Normal" w:uiPriority="0" w:qFormat="1"/>
-    <w:lsdException w:name="heading 1" w:uiPriority="9" w:qFormat="1"/>
-    <w:lsdException w:name="heading 2" w:uiPriority="9" w:qFormat="1"/>
-    <w:lsdException w:name="heading 3" w:uiPriority="9" w:qFormat="1"/>
-  </w:latentStyles>
-  <w:style w:type="paragraph" w:default="1" w:styleId="Normal">
-    <w:name w:val="Normal"/>
-    <w:qFormat/>
-  </w:style>
-  <w:style w:type="paragraph" w:styleId="Heading1">
-    <w:name w:val="heading 1"/>
-    <w:basedOn w:val="Normal"/>
-    <w:next w:val="Normal"/>
-    <w:link w:val="Heading1Char"/>
-    <w:uiPriority w:val="9"/>
-    <w:qFormat/>
-    <w:rsid w:val="00000001"/>
-    <w:pPr>
-      <w:spacing w:before="240" w:after="0"/>
-      <w:outlineLvl w:val="0"/>
-    </w:pPr>
-    <w:rPr>
-      <w:rFonts w:ascii="Calibri Light" w:eastAsia="Calibri Light" w:hAnsi="Calibri Light" w:cs="Calibri Light"/>
-      <w:color w:val="2F5496"/>
-      <w:sz w:val="32"/>
-      <w:szCs w:val="32"/>
-    </w:rPr>
-  </w:style>
-  <w:style w:type="paragraph" w:styleId="Heading2">
-    <w:name w:val="heading 2"/>
-    <w:basedOn w:val="Normal"/>
-    <w:next w:val="Normal"/>
-    <w:link w:val="Heading2Char"/>
-    <w:uiPriority w:val="9"/>
-    <w:qFormat/>
-    <w:rsid w:val="00000001"/>
-    <w:pPr>
-      <w:spacing w:before="240" w:after="0"/>
-      <w:outlineLvl w:val="1"/>
-    </w:pPr>
-    <w:rPr>
-      <w:rFonts w:ascii="Calibri Light" w:eastAsia="Calibri Light" w:hAnsi="Calibri Light" w:cs="Calibri Light"/>
-      <w:color w:val="2F5496"/>
-      <w:sz w:val="26"/>
-      <w:szCs w:val="26"/>
-    </w:rPr>
-  </w:style>
-  <w:style w:type="paragraph" w:styleId="Heading3">
-    <w:name w:val="heading 3"/>
-    <w:basedOn w:val="Normal"/>
-    <w:next w:val="Normal"/>
-    <w:link w:val="Heading3Char"/>
-    <w:uiPriority w:val="9"/>
-    <w:qFormat/>
-    <w:rsid w:val="00000001"/>
-    <w:pPr>
-      <w:spacing w:before="240" w:after="0"/>
-      <w:outlineLvl w:val="2"/>
-    </w:pPr>
-    <w:rPr>
-      <w:rFonts w:ascii="Calibri Light" w:eastAsia="Calibri Light" w:hAnsi="Calibri Light" w:cs="Calibri Light"/>
-      <w:color w:val="1F3763"/>
-      <w:sz w:val="24"/>
-      <w:szCs w:val="24"/>
-    </w:rPr>
-  </w:style>
-  <w:style w:type="character" w:styleId="Heading1Char">
-    <w:name w:val="Heading 1 Char"/>
-    <w:basedOn w:val="DefaultParagraphFont"/>
-    <w:link w:val="Heading1"/>
-    <w:uiPriority w:val="9"/>
-    <w:rsid w:val="00000001"/>
-    <w:rPr>
-      <w:rFonts w:ascii="Calibri Light" w:eastAsia="Calibri Light" w:hAnsi="Calibri Light" w:cs="Calibri Light"/>
-      <w:color w:val="2F5496"/>
-      <w:sz w:val="32"/>
-      <w:szCs w:val="32"/>
-    </w:rPr>
-  </w:style>
-  <w:style w:type="character" w:styleId="Heading2Char">
-    <w:name w:val="Heading 2 Char"/>
-    <w:basedOn w:val="DefaultParagraphFont"/>
-    <w:link w:val="Heading2"/>
-    <w:uiPriority w:val="9"/>
-    <w:rsid w:val="00000001"/>
-    <w:rPr>
-      <w:rFonts w:ascii="Calibri Light" w:eastAsia="Calibri Light" w:hAnsi="Calibri Light" w:cs="Calibri Light"/>
-      <w:color w:val="2F5496"/>
-      <w:sz w:val="26"/>
-      <w:szCs w:val="26"/>
-    </w:rPr>
-  </w:style>
-  <w:style w:type="character" w:styleId="Heading3Char">
-    <w:name w:val="Heading 3 Char"/>
-    <w:basedOn w:val="DefaultParagraphFont"/>
-    <w:link w:val="Heading3"/>
-    <w:uiPriority w:val="9"/>
-    <w:rsid w:val="00000001"/>
-    <w:rPr>
-      <w:rFonts w:ascii="Calibri Light" w:eastAsia="Calibri Light" w:hAnsi="Calibri Light" w:cs="Calibri Light"/>
-      <w:color w:val="1F3763"/>
-      <w:sz w:val="24"/>
-      <w:szCs w:val="24"/>
-    </w:rPr>
-  </w:style>
-  <w:style w:type="table" w:styleId="TableGrid">
-    <w:name w:val="Table Grid"/>
-    <w:basedOn w:val="NormalTable"/>
-    <w:uiPriority w:val="39"/>
-    <w:rsid w:val="00000001"/>
-    <w:tblPr>
-      <w:tblBorders>
-        <w:top w:val="single" w:sz="4" w:space="0" w:color="auto"/>
-        <w:left w:val="single" w:sz="4" w:space="0" w:color="auto"/>
-        <w:bottom w:val="single" w:sz="4" w:space="0" w:color="auto"/>
-        <w:right w:val="single" w:sz="4" w:space="0" w:color="auto"/>
-        <w:insideH w:val="single" w:sz="4" w:space="0" w:color="auto"/>
-        <w:insideV w:val="single" w:sz="4" w:space="0" w:color="auto"/>
-      </w:tblBorders>
-    </w:tblPr>
-  </w:style>
-  <w:style w:type="table" w:styleId="NormalTable">
-    <w:name w:val="Normal Table"/>
-    <w:uiPriority w:val="99"/>
-    <w:semiHidden/>
-    <w:unhideWhenUsed/>
-    <w:tblPr>
-      <w:tblInd w:w="0" w:type="dxa"/>
-    </w:tblPr>
-    <w:tblGrid>
-      <w:gridCol w:w="2000"/>
-    </w:tblGrid>
-  </w:style>
-</w:styles>`);
-      
-      // Generate the ZIP file
-      zip.generateAsync({type: 'blob'}).then(function(blob) {
-        const base = (document.getElementById('filename').value || 'R2 GPT Export').replace(/\.(docx|rtf|txt)$/i, '');
+      // Add some basic styling to make the Word document look nice.
+      // This mimics ChatGPT's formatting for code blocks, tables, etc.
+      const styledHtml = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="UTF-8">
+          <style>
+            body { font-family: Calibri, Arial, sans-serif; font-size: 11pt; line-height: 1.5; }
+            pre { background-color: #f0f0f0; padding: 1em; white-space: pre-wrap; word-wrap: break-word; font-family: 'Courier New', Courier, monospace; }
+            code { font-family: 'Courier New', Courier, monospace; }
+            blockquote { border-left: 2px solid #ccc; margin-left: 1.5em; padding-left: 1em; color: #555; }
+            table { border-collapse: collapse; width: 100%; margin-bottom: 1em; }
+            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+            th { background-color: #f2f2f2; }
+            ul, ol { margin-top: 0; padding-top: 0; }
+          </style>
+        </head>
+        <body>
+          ${htmlContent}
+        </body>
+        </html>
+      `;
+
+      try {
+        // Use the library to convert the HTML string into a DOCX blob.
+        const fileBlob = await htmlDocx.asBlob(styledHtml);
+        
+        const filenameInput = document.getElementById('filename').value || 'R2 GPT Export';
+        const base = filenameInput.replace(/\.(docx|rtf|txt)$/i, '');
+        
+        // Create a temporary link to trigger the download.
         const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = base + '.docx';
+        a.href = URL.createObjectURL(fileBlob);
+        a.download = `${base}.docx`;
         document.body.appendChild(a);
         a.click();
+        
+        // Clean up the temporary link.
         setTimeout(() => {
           URL.revokeObjectURL(a.href);
-          a.remove();
-        }, 400);
-        alert('✅ DOCX document downloaded!');
-      });
+          document.body.removeChild(a);
+        }, 100);
+        
+        showToast('✅ DOCX document downloaded!');
+
+      } catch (error) {
+        console.error('Error generating DOCX:', error);
+        showToast('An error occurred during DOCX generation.');
+      }
     }
     
-    function testAlert() {
-      console.log('Alert button clicked');
-      
-      // Create the actual bookmarklet code
+    /**
+     * Generates the bookmarklet code and displays the modal.
+     */
+    function showBookmarkletModal() {
+      // Bookmarklet to copy the HTML of the LAST ChatGPT response.
       const bookmarkletLast = `javascript:(function(){
-        const responses = document.querySelectorAll('[data-message-author-role="assistant"]');
-        if (responses.length > 0) {
+        try {
+          const responses = document.querySelectorAll('div[data-message-author-role="assistant"]');
+          if (!responses.length) { alert('No ChatGPT responses found.'); return; }
           const lastResponse = responses[responses.length - 1];
-          const content = lastResponse.querySelector('.markdown');
+          const content = lastResponse.querySelector('.markdown, .prose');
           if (content) {
-            navigator.clipboard.writeText(content.innerText || content.textContent);
-            alert('Last ChatGPT response copied!');
+            navigator.clipboard.writeText(content.innerHTML)
+              .then(() => alert('Last ChatGPT response (HTML) copied!'))
+              .catch(err => alert('Failed to copy: ' + err));
           } else {
-            alert('Could not find response content');
+            alert('Could not find response content.');
           }
-        } else {
-          alert('No ChatGPT responses found');
+        } catch(e) {
+          alert('An error occurred: ' + e.message);
         }
       })();`;
       
+      // Bookmarklet to copy the HTML of ALL ChatGPT responses.
       const bookmarkletAll = `javascript:(function(){
-        const responses = document.querySelectorAll('[data-message-author-role="assistant"]');
-        if (responses.length > 0) {
-          let allText = '';
-          responses.forEach(response => {
-            const content = response.querySelector('.markdown');
+        try {
+          const responses = document.querySelectorAll('div[data-message-author-role="assistant"]');
+          if (!responses.length) { alert('No ChatGPT responses found.'); return; }
+          let allHtml = '';
+          responses.forEach((response, i) => {
+            const content = response.querySelector('.markdown, .prose');
             if (content) {
-              allText += (content.innerText || content.textContent) + '\\n\\n';
+              allHtml += content.innerHTML;
+              if (i < responses.length - 1) allHtml += '<hr>';
             }
           });
-          navigator.clipboard.writeText(allText.trim());
-          alert('All ChatGPT responses copied!');
-        } else {
-          alert('No ChatGPT responses found');
+          if (allHtml) {
+            navigator.clipboard.writeText(allHtml)
+              .then(() => alert('All ChatGPT responses (HTML) copied!'))
+              .catch(err => alert('Failed to copy: ' + err));
+          } else {
+            alert('Could not find any content to copy.');
+          }
+        } catch(e) {
+          alert('An error occurred: ' + e.message);
         }
       })();`;
       
-      // Update the bookmarklet links
+      // Set the href attributes for the draggable links.
       document.getElementById('dragLast').href = bookmarkletLast;
       document.getElementById('dragAll').href = bookmarkletAll;
       
+      // Show the modal.
       document.getElementById('mb').style.display = 'block';
       document.getElementById('mbBackdrop').style.display = 'block';
     }
     
+    /**
+     * Hides the bookmarklet modal.
+     */
     function closeModal() {
       document.getElementById('mb').style.display = 'none';
       document.getElementById('mbBackdrop').style.display = 'none';
     }
     
-    console.log('Script loaded successfully');
+    console.log('R² Solutions Converter v3.0 Loaded');
   </script>
 </body>
 </html>
