@@ -375,7 +375,7 @@
           0x00, 0x00, 0x00, 0x00, // CRC32
           contentBytes.length & 0xFF, (contentBytes.length >> 8) & 0xFF, (contentBytes.length >> 16) & 0xFF, (contentBytes.length >> 24) & 0xFF, // Compressed size
           contentBytes.length & 0xFF, (contentBytes.length >> 8) & 0xFF, (contentBytes.length >> 16) & 0xFF, (contentBytes.length >> 24) & 0xFF, // Uncompressed size
-          nameBytes.length & 0xFF, (nameBytes >> 8) & 0xFF, // File name length
+          nameBytes.length & 0xFF, (nameBytes.length >> 8) & 0xFF, // File name length
           0x00, 0x00 // Extra field length
         );
         
@@ -397,7 +397,7 @@
           0x00, 0x00, 0x00, 0x00, // CRC32
           contentBytes.length & 0xFF, (contentBytes.length >> 8) & 0xFF, (contentBytes.length >> 16) & 0xFF, (contentBytes.length >> 24) & 0xFF, // Compressed size
           contentBytes.length & 0xFF, (contentBytes.length >> 8) & 0xFF, (contentBytes.length >> 16) & 0xFF, (contentBytes.length >> 24) & 0xFF, // Uncompressed size
-          nameBytes.length & 0xFF, (nameBytes >> 8) & 0xFF, // File name length
+          nameBytes.length & 0xFF, (nameBytes.length >> 8) & 0xFF, // File name length
           0x00, 0x00, // Extra field length
           0x00, 0x00, // File comment length
           0x00, 0x00, // Disk number start
