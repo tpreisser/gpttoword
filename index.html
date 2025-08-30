@@ -66,6 +66,7 @@
           <button onclick="pasteFromClipboard()" class="btn">Paste from Clipboard</button>
           <button onclick="convertToWord()" class="btn good">Convert to Word</button>
           <button onclick="copyForWord()" class="btn" style="background:#dc2626">Copy for Word</button>
+          <button onclick="copyForGmail()" class="btn" style="background:#ea4335">Copy for Gmail</button>
           <button onclick="clearContent()" class="btn" style="background:#0f1a2e">Clear</button>
 
           <button onclick="showBookmarkletModal()" class="btn">Get Bookmarklet</button>
@@ -574,6 +575,165 @@
       } catch (error) {
         console.error('Error:', error);
         showLoading(false);
+        showToast('❌ Copy failed. Please try again.');
+      }
+    }
+
+    function copyForGmail() {
+      const htmlContent = document.getElementById('md').value;
+      if (!htmlContent.trim()) {
+        showToast('Nothing to copy!');
+        return;
+      }
+
+      try {
+        // Apply all our custom rules first
+        const processedHTML = cleanAndValidateHTML(htmlContent);
+        
+        // Create a temporary div to convert for Gmail
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = processedHTML;
+        
+        // Extract just the body content
+        const bodyContent = tempDiv.querySelector('body');
+        const contentToProcess = bodyContent ? bodyContent.innerHTML : tempDiv.innerHTML;
+        
+        // Create a new div for Gmail-specific conversion
+        const gmailDiv = document.createElement('div');
+        gmailDiv.innerHTML = contentToProcess;
+        
+        // GMAIL-SPECIFIC CONVERSIONS:
+        
+        // 1. Convert code blocks to Gmail-friendly format
+        const codeBlocks = gmailDiv.querySelectorAll('pre code, pre');
+        codeBlocks.forEach(code => {
+          const gmailCode = document.createElement('div');
+          gmailCode.style.fontFamily = 'monospace';
+          gmailCode.style.backgroundColor = '#f5f5f5';
+          gmailCode.style.padding = '10px';
+          gmailCode.style.border = '1px solid #ddd';
+          gmailCode.style.borderRadius = '4px';
+          gmailCode.style.margin = '10px 0';
+          gmailCode.style.whiteSpace = 'pre-wrap';
+          gmailCode.style.fontSize = '12px';
+          gmailCode.style.lineHeight = '1.4';
+          gmailCode.innerHTML = code.innerHTML;
+          code.parentNode.replaceChild(gmailCode, code);
+        });
+        
+        // 2. Convert inline code
+        const inlineCode = gmailDiv.querySelectorAll('code:not(pre code)');
+        inlineCode.forEach(code => {
+          const gmailInlineCode = document.createElement('span');
+          gmailInlineCode.style.fontFamily = 'monospace';
+          gmailInlineCode.style.backgroundColor = '#f0f0f0';
+          gmailInlineCode.style.padding = '2px 4px';
+          gmailInlineCode.style.borderRadius = '3px';
+          gmailInlineCode.style.fontSize = '12px';
+          gmailInlineCode.innerHTML = code.innerHTML;
+          code.parentNode.replaceChild(gmailInlineCode, code);
+        });
+        
+        // 3. Convert tables to Gmail-friendly format
+        const tables = gmailDiv.querySelectorAll('table');
+        tables.forEach(table => {
+          table.style.borderCollapse = 'collapse';
+          table.style.width = '100%';
+          table.style.marginBottom = '15px';
+          table.style.fontSize = '14px';
+          
+          const cells = table.querySelectorAll('td, th');
+          cells.forEach(cell => {
+            cell.style.border = '1px solid #ddd';
+            cell.style.padding = '8px';
+            cell.style.textAlign = 'left';
+            cell.style.verticalAlign = 'top';
+          });
+          
+          const headers = table.querySelectorAll('th');
+          headers.forEach(header => {
+            header.style.backgroundColor = '#f8f9fa';
+            header.style.fontWeight = 'bold';
+          });
+        });
+        
+        // 4. Convert blockquotes
+        const blockquotes = gmailDiv.querySelectorAll('blockquote');
+        blockquotes.forEach(quote => {
+          quote.style.borderLeft = '4px solid #4285f4';
+          quote.style.paddingLeft = '15px';
+          quote.style.marginLeft = '10px';
+          quote.style.color = '#5f6368';
+          quote.style.fontStyle = 'italic';
+          quote.style.backgroundColor = '#f8f9fa';
+          quote.style.padding = '10px 15px';
+          quote.style.borderRadius = '4px';
+        });
+        
+        // 5. Convert lists for Gmail
+        const lists = gmailDiv.querySelectorAll('ul, ol');
+        lists.forEach(list => {
+          list.style.marginLeft = '20px';
+          list.style.marginBottom = '10px';
+          list.style.fontSize = '14px';
+          list.style.lineHeight = '1.6';
+        });
+        
+        // 6. Convert headings for Gmail
+        const headings = gmailDiv.querySelectorAll('h1, h2, h3, h4, h5, h6');
+        headings.forEach(heading => {
+          heading.style.color = '#202124';
+          heading.style.fontWeight = 'bold';
+          heading.style.marginTop = '20px';
+          heading.style.marginBottom = '10px';
+          heading.style.fontSize = heading.tagName === 'H1' ? '24px' : 
+                                  heading.tagName === 'H2' ? '20px' : 
+                                  heading.tagName === 'H3' ? '18px' : '16px';
+        });
+        
+        // 7. Convert links for Gmail
+        const links = gmailDiv.querySelectorAll('a');
+        links.forEach(link => {
+          link.style.color = '#1a73e8';
+          link.style.textDecoration = 'underline';
+          link.style.textDecorationColor = '#1a73e8';
+        });
+        
+        // 8. Convert paragraphs for Gmail
+        const paragraphs = gmailDiv.querySelectorAll('p');
+        paragraphs.forEach(p => {
+          p.style.margin = '0 0 10px 0';
+          p.style.fontSize = '14px';
+          p.style.lineHeight = '1.6';
+          p.style.color = '#202124';
+        });
+        
+        // Create the final Gmail-optimized HTML
+        const gmailHTML = gmailDiv.innerHTML;
+        
+        // Create a blob with the Gmail-optimized HTML content
+        const htmlBlob = new Blob([gmailHTML], { type: 'text/html' });
+        const textBlob = new Blob([gmailDiv.textContent || gmailDiv.innerText], { type: 'text/plain' });
+        
+        // Use the Clipboard API to copy both HTML and text formats
+        const clipboardItem = new ClipboardItem({
+          'text/html': htmlBlob,
+          'text/plain': textBlob
+        });
+        
+        navigator.clipboard.write([clipboardItem]).then(() => {
+          showToast('✅ Gmail-optimized content copied! Paste into Gmail for perfect formatting.');
+        }).catch(() => {
+          // Fallback: try to copy as plain text
+          navigator.clipboard.writeText(gmailDiv.textContent || gmailDiv.innerText).then(() => {
+            showToast('✅ Text copied! (Rich formatting not available)');
+          }).catch(() => {
+            showToast('❌ Copy failed. Try selecting and copying manually.');
+          });
+        });
+        
+      } catch (error) {
+        console.error('Error:', error);
         showToast('❌ Copy failed. Please try again.');
       }
     }
