@@ -270,25 +270,27 @@
         }
       });
       
-      // 9. Fix underlining (underline elements)
+      // 9. Fix underlining - use border-bottom instead of text-decoration
       const underlinedElements = tempDiv.querySelectorAll('u, [style*="text-decoration: underline"]');
       underlinedElements.forEach(element => {
         if (!element.classList.contains('underline-processed')) {
           element.classList.add('underline-processed');
-          element.style.textDecoration = 'underline';
-          element.style.textDecorationColor = '#000000';
-          element.style.textDecorationThickness = '1px';
+          element.style.borderBottom = '1px solid #000000';
+          element.style.textDecoration = 'none';
+          element.style.display = 'inline';
         }
       });
       
-      // 10. Fix strikethrough (del, s, strike elements)
+      // 10. Fix strikethrough - use border-top instead of text-decoration
       const strikethroughElements = tempDiv.querySelectorAll('del, s, strike, [style*="text-decoration: line-through"]');
       strikethroughElements.forEach(element => {
         if (!element.classList.contains('strikethrough-processed')) {
           element.classList.add('strikethrough-processed');
-          element.style.textDecoration = 'line-through';
-          element.style.textDecorationColor = '#000000';
-          element.style.textDecorationThickness = '1px';
+          element.style.borderTop = '1px solid #000000';
+          element.style.textDecoration = 'none';
+          element.style.display = 'inline';
+          element.style.position = 'relative';
+          element.style.top = '-0.5em';
         }
       });
       
@@ -318,35 +320,58 @@
         if (!img.classList.contains('image-processed')) {
           img.classList.add('image-processed');
           const placeholder = document.createElement('p');
-          placeholder.innerHTML = `[Image: ${img.alt || 'No description'}]`;
+          const altText = img.alt || 'No description';
+          const srcText = img.src ? ` (${img.src})` : '';
+          placeholder.innerHTML = `[Image: ${altText}${srcText}]`;
           placeholder.style.color = '#666';
           placeholder.style.fontStyle = 'italic';
           placeholder.style.backgroundColor = '#f9f9f9';
           placeholder.style.padding = '10px';
           placeholder.style.border = '1px dashed #ccc';
           placeholder.style.borderRadius = '4px';
+          placeholder.style.margin = '10px 0';
           img.parentNode.replaceChild(placeholder, img);
         }
       });
       
-      // 13. Handle collapsible sections (expand them)
+      // 13. Handle collapsible sections (completely remove collapsible functionality)
       const collapsibleSections = tempDiv.querySelectorAll('details, [class*="collapse"], [class*="accordion"]');
       collapsibleSections.forEach(section => {
         if (!section.classList.contains('collapsible-processed')) {
           section.classList.add('collapsible-processed');
           
-          // If it's a details element, expand it
+          // Create a new div to hold all the content
+          const contentDiv = document.createElement('div');
+          
+          // If it's a details element, extract summary and content
           if (section.tagName.toLowerCase() === 'details') {
-            section.setAttribute('open', '');
+            const summary = section.querySelector('summary');
+            if (summary) {
+              // Add summary as a header
+              const header = document.createElement('h4');
+              header.innerHTML = summary.innerHTML;
+              header.style.color = '#333';
+              header.style.fontSize = '16px';
+              header.style.marginBottom = '10px';
+              header.style.fontWeight = 'bold';
+              contentDiv.appendChild(header);
+            }
+            
+            // Add all other content
+            Array.from(section.children).forEach(child => {
+              if (child.tagName.toLowerCase() !== 'summary') {
+                contentDiv.appendChild(child.cloneNode(true));
+              }
+            });
+          } else {
+            // For other collapsible elements, just extract all content
+            Array.from(section.children).forEach(child => {
+              contentDiv.appendChild(child.cloneNode(true));
+            });
           }
           
-          // Add a header to indicate it was a collapsible section
-          const header = document.createElement('h4');
-          header.innerHTML = '📋 Section Content:';
-          header.style.color = '#666';
-          header.style.fontSize = '14px';
-          header.style.marginBottom = '10px';
-          section.parentNode.insertBefore(header, section);
+          // Replace the collapsible section with the content
+          section.parentNode.replaceChild(contentDiv, section);
         }
       });
       
