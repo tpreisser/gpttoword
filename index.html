@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;700&display=swap" rel="stylesheet">
     <title>R² Solutions · GPT → Word Copier</title>
-    <script src="https://unpkg.com/html-to-docx@1.8.0/dist/html-to-docx.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/html-docx-js@0.3.1/dist/html-docx.min.js"></script>
     <style>
       :root{
         --font:'Plus Jakarta Sans',sans-serif;
@@ -143,11 +143,30 @@
         cleanedHTML = `<p>${cleanedHTML}</p>`;
       }
       
-      // Add basic styling for better conversion
+      // Create complete HTML document as required by html-docx-js
       cleanedHTML = `
-        <div style="font-family: Calibri, sans-serif; font-size: 11pt; line-height: 1.4;">
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <style>
+            body { font-family: Calibri, sans-serif; font-size: 11pt; line-height: 1.4; }
+            h1 { font-size: 24pt; font-weight: bold; margin-top: 24px; margin-bottom: 12px; }
+            h2 { font-size: 18pt; font-weight: bold; margin-top: 18px; margin-bottom: 9px; }
+            h3 { font-size: 14pt; font-weight: bold; margin-top: 14px; margin-bottom: 7px; }
+            p { margin: 0 0 10px 0; }
+            pre { background-color: #f0f0f0; padding: 10px; font-family: 'Courier New', monospace; border: 1px solid #ddd; white-space: pre-wrap; margin: 10px 0; }
+            blockquote { border-left: 2px solid #ccc; padding-left: 10px; margin-left: 5px; color: #555; }
+            ul, ol { margin-top: 0; margin-bottom: 10px; padding-left: 40px; }
+            table { border-collapse: collapse; margin-bottom: 10px; }
+            td, th { border: 1px solid #ccc; padding: 8px; }
+            th { font-weight: bold; background-color: #f2f2f2; }
+            code { font-family: 'Courier New', monospace; background-color: #f0f0f0; padding: 2px 4px; }
+          </style>
+        </head>
+        <body>
           ${cleanedHTML}
-        </div>
+        </body>
+        </html>
       `;
       
       return cleanedHTML;
@@ -161,7 +180,7 @@
       }
 
       // Check if library is loaded
-      if (typeof HTMLtoDOCX === 'undefined') {
+      if (typeof htmlDocx === 'undefined') {
         showToast('❌ Conversion library failed to load. Please refresh the page.');
         return;
       }
@@ -172,52 +191,34 @@
         // Clean and validate the HTML
         const cleanedHTML = cleanAndValidateHTML(htmlContent);
         
-        // Use the proper html-to-docx library
+                // Convert HTML to DOCX using html-docx-js with proper options
         const options = {
-          margin: {
+          orientation: 'portrait',
+          margins: {
             top: 1440,
             right: 1440,
             bottom: 1440,
             left: 1440
-          },
-          font: {
-            family: 'Calibri',
-            size: 11
-          },
-          table: {
-            row: {
-              cantSplit: true
-            }
-          },
-          header: false,
-          footer: false,
-          pageNumber: false
+          }
         };
 
-        // Convert HTML to DOCX using the browser-compatible library
-        HTMLtoDOCX(cleanedHTML, null, options).then(fileBuffer => {
-          // Create blob and download
-          const blob = new Blob([fileBuffer], { 
-            type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' 
-          });
-          
-          const url = window.URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.style.display = 'none';
-          a.href = url;
-          a.download = 'R2_GPT_Export.docx';
-          document.body.appendChild(a);
-          a.click();
-          window.URL.revokeObjectURL(url);
-          document.body.removeChild(a);
-          
-          showLoading(false);
-          showToast('✅ Word document downloaded!');
-        }).catch(error => {
-          console.error('Conversion error:', error);
-          showLoading(false);
-          showToast('❌ Conversion failed. Please try again.');
+        const fileBuffer = htmlDocx.asBlob(cleanedHTML, options);
+        const blob = new Blob([fileBuffer], { 
+          type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' 
         });
+          
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = url;
+        a.download = 'R2_GPT_Export.docx';
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        
+        showLoading(false);
+        showToast('✅ Word document downloaded!');
         
       } catch (error) {
         console.error('Error:', error);
@@ -239,6 +240,9 @@
       document.getElementById('mb').style.display = 'none';
       document.getElementById('mbBackdrop').style.display = 'none';
     }
+  </script>
+</body>
+</html>
   </script>
 </body>
 </html>
