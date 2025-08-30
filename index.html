@@ -66,6 +66,7 @@
           <button onclick="pasteFromClipboard()" class="btn">Paste from Clipboard</button>
           <button onclick="convertToWord()" class="btn good">Convert to Word</button>
           <button onclick="clearContent()" class="btn" style="background:#0f1a2e">Clear</button>
+
           <button onclick="showBookmarkletModal()" class="btn">Get Bookmarklet</button>
         </div>
       </div>
@@ -113,6 +114,8 @@
       document.getElementById('md').value = '';
       showToast('Cleared!');
     }
+
+
 
     function pasteFromClipboard() {
       navigator.clipboard.readText().then(text => {
@@ -270,27 +273,39 @@
         }
       });
       
-      // 9. Fix underlining - use border-bottom instead of text-decoration
+      // 9. Fix underlining - convert to <u> tags
       const underlinedElements = tempDiv.querySelectorAll('u, [style*="text-decoration: underline"]');
       underlinedElements.forEach(element => {
         if (!element.classList.contains('underline-processed')) {
           element.classList.add('underline-processed');
-          element.style.borderBottom = '1px solid #000000';
-          element.style.textDecoration = 'none';
-          element.style.display = 'inline';
+          // Create a new <u> element
+          const uElement = document.createElement('u');
+          uElement.innerHTML = element.innerHTML;
+          // Copy any existing styles except text-decoration
+          Array.from(element.style).forEach(style => {
+            if (style !== 'text-decoration') {
+              uElement.style[style] = element.style[style];
+            }
+          });
+          element.parentNode.replaceChild(uElement, element);
         }
       });
       
-      // 10. Fix strikethrough - use border-top instead of text-decoration
+      // 10. Fix strikethrough - convert to <s> tags
       const strikethroughElements = tempDiv.querySelectorAll('del, s, strike, [style*="text-decoration: line-through"]');
       strikethroughElements.forEach(element => {
         if (!element.classList.contains('strikethrough-processed')) {
           element.classList.add('strikethrough-processed');
-          element.style.borderTop = '1px solid #000000';
-          element.style.textDecoration = 'none';
-          element.style.display = 'inline';
-          element.style.position = 'relative';
-          element.style.top = '-0.5em';
+          // Create a new <s> element
+          const sElement = document.createElement('s');
+          sElement.innerHTML = element.innerHTML;
+          // Copy any existing styles except text-decoration
+          Array.from(element.style).forEach(style => {
+            if (style !== 'text-decoration') {
+              sElement.style[style] = element.style[style];
+            }
+          });
+          element.parentNode.replaceChild(sElement, element);
         }
       });
       
@@ -340,35 +355,23 @@
         if (!section.classList.contains('collapsible-processed')) {
           section.classList.add('collapsible-processed');
           
-          // Create a new div to hold all the content
-          const contentDiv = document.createElement('div');
+          // Get the HTML content as a string
+          let sectionHTML = section.innerHTML;
           
-          // If it's a details element, extract summary and content
+          // If it's a details element, handle summary specially
           if (section.tagName.toLowerCase() === 'details') {
             const summary = section.querySelector('summary');
             if (summary) {
-              // Add summary as a header
-              const header = document.createElement('h4');
-              header.innerHTML = summary.innerHTML;
-              header.style.color = '#333';
-              header.style.fontSize = '16px';
-              header.style.marginBottom = '10px';
-              header.style.fontWeight = 'bold';
-              contentDiv.appendChild(header);
+              // Replace summary with a header
+              const summaryHTML = summary.outerHTML;
+              const headerHTML = `<h4 style="color: #333; font-size: 16px; margin-bottom: 10px; font-weight: bold;">${summary.innerHTML}</h4>`;
+              sectionHTML = sectionHTML.replace(summaryHTML, headerHTML);
             }
-            
-            // Add all other content
-            Array.from(section.children).forEach(child => {
-              if (child.tagName.toLowerCase() !== 'summary') {
-                contentDiv.appendChild(child.cloneNode(true));
-              }
-            });
-          } else {
-            // For other collapsible elements, just extract all content
-            Array.from(section.children).forEach(child => {
-              contentDiv.appendChild(child.cloneNode(true));
-            });
           }
+          
+          // Create a simple div with the processed content
+          const contentDiv = document.createElement('div');
+          contentDiv.innerHTML = sectionHTML;
           
           // Replace the collapsible section with the content
           section.parentNode.replaceChild(contentDiv, section);
