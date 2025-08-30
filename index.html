@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;700&display=swap" rel="stylesheet">
     <title>R² Solutions · GPT → Word Copier</title>
-    <script src="https://cdn.jsdelivr.net/npm/@turbodocx/html-to-docx/dist/html-to-docx.min.js"></script>
+    <script src="https://unpkg.com/html-to-docx@1.8.0/dist/html-to-docx.min.js"></script>
     <style>
       :root{
         --font:'Plus Jakarta Sans',sans-serif;
@@ -37,7 +37,12 @@
       .btn:hover{transform:translateY(-1px);border-color:#8b5cf6}
       .btn.good{border-color:#15b57b}
       .backdrop{position:fixed;inset:0;background:var(--backdrop);display:none;z-index:50}
-      .modal{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);width:min(560px,92vw);background:#0b1022;border:1px solid var(--panel-bd);border-radius:16px;padding:18px;box-shadow:0 20px 50px rgba(0,0,0,.6);display:none;z-index:51;text-align:left}
+      .modal{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);width:min(560px,92vw);background:var(--panel);border:1px solid var(--panel-bd);border-radius:20px;padding:24px;box-shadow:0 20px 50px rgba(0,0,0,.6);display:none;z-index:51;text-align:left;backdrop-filter:blur(10px)}
+      .modal h3{color:#fff;font-size:1.3rem;font-weight:700;margin:0 0 20px 0;text-align:center}
+      .choice{display:flex;flex-direction:column;gap:12px;margin:20px 0}
+      .draglet{display:block;background:linear-gradient(90deg,var(--blue),var(--violet));color:#fff;text-decoration:none;padding:14px 18px;border-radius:12px;font-weight:600;text-align:center;transition:all .2s;border:1px solid rgba(255,255,255,.1)}
+      .draglet:hover{transform:translateY(-2px);box-shadow:0 8px 25px rgba(60,103,227,.4);border-color:rgba(255,255,255,.2)}
+      .actions{display:flex;justify-content:center;margin-top:24px}
       .toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#0a1a2e;border:1px solid #1e293b;padding:10px 14px;border-radius:10px;color:#e2f3ff;display:none;z-index:60;transition:opacity .3s}
       .loading{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:var(--panel);border:1px solid var(--panel-bd);border-radius:16px;padding:20px;box-shadow:0 20px 50px rgba(0,0,0,.6);z-index:70;display:none}
       .loading .spinner{width:40px;height:40px;border:3px solid var(--field-bd);border-top:3px solid var(--blue);border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 15px}
@@ -157,7 +162,7 @@
 
       // Check if library is loaded
       if (typeof HTMLtoDOCX === 'undefined') {
-        showToast('❌ Conversion library not loaded. Please refresh the page.');
+        showToast('❌ Conversion library failed to load. Please refresh the page.');
         return;
       }
 
