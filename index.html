@@ -64,8 +64,8 @@
         <div class="controls">
           <input id="filename" class="filename" type="text" value="R2 GPT Export.docx"/>
           <button onclick="pasteFromClipboard()" class="btn">Paste from Clipboard</button>
-          <button onclick="convertToWord()" class="btn good">Copy for Word</button>
-          <button onclick="copyForWordPaste()" class="btn" style="background:#dc2626">Copy for Word Paste</button>
+          <button onclick="convertToWord()" class="btn good">Convert to Word</button>
+          <button onclick="copyForWord()" class="btn" style="background:#dc2626">Copy for Word</button>
           <button onclick="clearContent()" class="btn" style="background:#0f1a2e">Clear</button>
 
           <button onclick="showBookmarkletModal()" class="btn">Get Bookmarklet</button>
@@ -505,20 +505,43 @@
       }
     }
 
-    function copyForWordPaste() {
+
+
+    function copyForWord() {
       const htmlContent = document.getElementById('md').value;
       if (!htmlContent.trim()) {
         showToast('Nothing to copy!');
         return;
       }
 
+      // Check if library is loaded
+      if (typeof htmlDocx === 'undefined') {
+        showToast('❌ Conversion library failed to load. Please refresh the page.');
+        return;
+      }
+
+      showLoading(true);
+
       try {
-        // Apply all our custom rules (same as when pasted)
-        const processedHTML = cleanAndValidateHTML(htmlContent);
+        // Clean and validate the HTML (SAME AS convertToWord)
+        const cleanedHTML = cleanAndValidateHTML(htmlContent);
         
-        // Create a temporary div to extract the content
+        // Convert HTML to DOCX using html-docx-js with proper options (SAME AS convertToWord)
+        const options = {
+          orientation: 'portrait',
+          margins: {
+            top: 1440,
+            right: 1440,
+            bottom: 1440,
+            left: 1440
+          }
+        };
+
+        const fileBuffer = htmlDocx.asBlob(cleanedHTML, options);
+        
+        // Instead of downloading, copy the processed content to clipboard
         const tempDiv = document.createElement('div');
-        tempDiv.innerHTML = processedHTML;
+        tempDiv.innerHTML = cleanedHTML;
         
         // Extract just the body content (remove the HTML document wrapper)
         const bodyContent = tempDiv.querySelector('body');
@@ -535,89 +558,23 @@
         });
         
         navigator.clipboard.write([clipboardItem]).then(() => {
+          showLoading(false);
           showToast('✅ Content copied! Paste into Word for perfect formatting.');
         }).catch(() => {
           // Fallback: try to copy as plain text
           navigator.clipboard.writeText(tempDiv.textContent || tempDiv.innerText).then(() => {
+            showLoading(false);
             showToast('✅ Text copied! (Rich formatting not available)');
           }).catch(() => {
+            showLoading(false);
             showToast('❌ Copy failed. Try selecting and copying manually.');
           });
         });
         
       } catch (error) {
         console.error('Error:', error);
-        showToast('❌ Copy failed. Please try again.');
-      }
-    }
-
-    function copyAsLibraryText() {
-      const htmlContent = document.getElementById('md').value;
-      if (!htmlContent.trim()) {
-        showToast('Nothing to copy!');
-        return;
-      }
-
-      // Check if library is loaded
-      if (typeof htmlDocx === 'undefined') {
-        showToast('❌ Conversion library failed to load. Please refresh the page.');
-        return;
-      }
-
-      showLoading(true);
-
-      try {
-        // Clean and validate the HTML (same as Word conversion)
-        const cleanedHTML = cleanAndValidateHTML(htmlContent);
-        
-        // Use the library to generate DOCX content
-        const options = {
-          orientation: 'portrait',
-          margins: {
-            top: 1440,
-            right: 1440,
-            bottom: 1440,
-            left: 1440
-          }
-        };
-
-        const fileBuffer = htmlDocx.asBlob(cleanedHTML, options);
-        
-        // Convert the DOCX blob to text content that can be pasted
-        // This extracts the text content from the DOCX format
-        const reader = new FileReader();
-        reader.onload = function(e) {
-          try {
-            // Extract text content from the DOCX (simplified approach)
-            // The library processes the HTML, so we can extract the processed content
-            const tempDiv = document.createElement('div');
-            tempDiv.innerHTML = cleanedHTML;
-            
-            // Get the text content that would be in the DOCX
-            const textContent = tempDiv.textContent || tempDiv.innerText;
-            
-            // Copy to clipboard
-            navigator.clipboard.writeText(textContent).then(() => {
-              showLoading(false);
-              showToast('✅ Library-processed content copied! Paste into Word.');
-            }).catch(() => {
-              showLoading(false);
-              showToast('❌ Copy failed. Try the "Copy as Rich Text" button instead.');
-            });
-            
-          } catch (error) {
-            console.error('Error extracting content:', error);
-            showLoading(false);
-            showToast('❌ Content extraction failed.');
-          }
-        };
-        
-        reader.readAsText(fileBuffer);
-        
-      } catch (error) {
-        console.error('Error:', error);
         showLoading(false);
-        showToast('❌ Library processing failed. Please try again.');
+        showToast('❌ Copy failed. Please try again.');
       }
     }
 
