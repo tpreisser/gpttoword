@@ -35,10 +35,24 @@
       @media (max-width: 768px) {
         .controls{gap:.4rem}
         .btn{padding:.5rem .6rem;font-size:0.8rem;min-width:100px}
+        .logo{transform:translateX(0);width:min(600px,85vw)}
+        .sub{font-size:0.95rem;margin-top:0.5rem}
+        .box{margin-top:1rem;width:95vw}
+        .body{padding:14px}
+        .md{min-height:280px;font-size:1rem}
       }
       @media (max-width: 480px) {
         .controls{flex-direction:column;gap:.5rem}
         .btn{width:100%;max-width:200px}
+        .logo{width:80vw;transform:translateX(0)}
+        .sub{font-size:0.9rem;margin-top:0.4rem}
+        .box{margin-top:0.8rem;width:98vw}
+        .body{padding:12px}
+        .md{min-height:250px;font-size:0.95rem;padding:12px}
+        .hdr{padding:.7rem 1rem}
+        .hdr .title{font-size:1rem}
+        .hdr .v{font-size:0.75rem}
+        .main{padding:1rem 1rem 2rem}
       }
       .filename{background:#0a0f1e;border:1px solid var(--field-bd);color:#e2e8f0;border-radius:12px;padding:.75rem 1rem;min-width:260px;flex:1; display: none;} /* Filename is not needed now */
       .btn{appearance:none;border:1px solid var(--bd);background:#10192e;color:#e6faff;border-radius:12px;padding:.6rem .8rem;font-weight:800;cursor:pointer;transition:.18s;font-size:0.9rem;min-width:120px}
