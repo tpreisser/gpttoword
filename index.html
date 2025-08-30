@@ -30,7 +30,7 @@
       .hdr .v{font-weight:500;color:rgba(255,255,255,.8);font-size:.86rem}
       .dots{display:flex;gap:7px}.dot{width:10px;height:10px;border-radius:50%;background:rgba(255,255,255,.35)}
       .body{padding:18px;display:flex;flex-direction:column;gap:14px;text-align:left}
-      .md{width:100%;min-height:320px;resize:vertical;background:#0a0f1e;border:1px solid var(--field-bd);color:#e2e8f0;border-radius:12px;padding:16px;box-sizing:border-box;font-size:1.05rem;line-height:1.6;outline:none}
+      .md{width:100%;min-height:320px;resize:vertical;background:#0a0f1e;border:1px solid var(--field-bd);color:#e2e8f0;border-radius:16px;padding:16px;box-sizing:border-box;font-size:1.05rem;line-height:1.6;outline:none}
       .controls{display:flex;gap:.6rem;flex-wrap:wrap;align-items:center;margin-top:10px;justify-content:center}
       @media (max-width: 768px) {
         .controls{gap:.4rem}
@@ -79,7 +79,7 @@
         <div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
       </div>
       <div class="body">
-        <textarea id="md" class="md" placeholder="1. Use bookmarklet in ChatGPT.&#10;2. Paste here.&#10;3. Click 'Convert to Word'."></textarea>
+        <textarea id="md" class="md" placeholder="1. Use bookmarklet in ChatGPT.&#10;2. Paste here.&#10;3. Choose your conversion option."></textarea>
         <div class="controls">
           <input id="filename" class="filename" type="text" value="R2 GPT Export.docx"/>
           <button onclick="pasteFromClipboard()" class="btn btn-primary">Paste from Clipboard</button>
