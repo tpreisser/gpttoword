@@ -135,6 +135,215 @@
       const styles = tempDiv.querySelectorAll('style');
       styles.forEach(style => style.remove());
       
+      // CUSTOM RULES - Add your own formatting logic here
+      
+      // 1. Fix code blocks that might not be properly formatted
+      const codeBlocks = tempDiv.querySelectorAll('pre code, pre');
+      codeBlocks.forEach(code => {
+        if (!code.classList.contains('code-block-processed')) {
+          code.classList.add('code-block-processed');
+          // Ensure code blocks have proper styling
+          code.style.fontFamily = 'Courier New, monospace';
+          code.style.backgroundColor = '#f0f0f0';
+          code.style.padding = '10px';
+          code.style.border = '1px solid #ddd';
+          code.style.borderRadius = '4px';
+          code.style.whiteSpace = 'pre-wrap';
+        }
+      });
+      
+      // 2. Fix inline code that might not be styled
+      const inlineCode = tempDiv.querySelectorAll('code:not(pre code)');
+      inlineCode.forEach(code => {
+        if (!code.classList.contains('inline-code-processed')) {
+          code.classList.add('inline-code-processed');
+          code.style.fontFamily = 'Courier New, monospace';
+          code.style.backgroundColor = '#f0f0f0';
+          code.style.padding = '2px 4px';
+          code.style.borderRadius = '3px';
+        }
+      });
+      
+      // 3. Fix lists that might not be properly structured
+      const lists = tempDiv.querySelectorAll('ul, ol');
+      lists.forEach(list => {
+        if (!list.classList.contains('list-processed')) {
+          list.classList.add('list-processed');
+          // Ensure proper list styling
+          list.style.marginLeft = '20px';
+          list.style.marginBottom = '10px';
+        }
+      });
+      
+      // 4. Fix tables that might need better formatting
+      const tables = tempDiv.querySelectorAll('table');
+      tables.forEach(table => {
+        if (!table.classList.contains('table-processed')) {
+          table.classList.add('table-processed');
+          table.style.borderCollapse = 'collapse';
+          table.style.width = '100%';
+          table.style.marginBottom = '15px';
+          
+          // Style table cells
+          const cells = table.querySelectorAll('td, th');
+          cells.forEach(cell => {
+            cell.style.border = '1px solid #ccc';
+            cell.style.padding = '8px';
+            cell.style.textAlign = 'left';
+          });
+          
+          // Style table headers
+          const headers = table.querySelectorAll('th');
+          headers.forEach(header => {
+            header.style.backgroundColor = '#f2f2f2';
+            header.style.fontWeight = 'bold';
+          });
+        }
+      });
+      
+      // 5. Fix blockquotes
+      const blockquotes = tempDiv.querySelectorAll('blockquote');
+      blockquotes.forEach(quote => {
+        if (!quote.classList.contains('quote-processed')) {
+          quote.classList.add('quote-processed');
+          quote.style.borderLeft = '4px solid #ccc';
+          quote.style.paddingLeft = '15px';
+          quote.style.marginLeft = '10px';
+          quote.style.color = '#555';
+          quote.style.fontStyle = 'italic';
+        }
+      });
+      
+      // 6. Fix horizontal rules
+      const hrs = tempDiv.querySelectorAll('hr');
+      hrs.forEach(hr => {
+        if (!hr.classList.contains('hr-processed')) {
+          hr.classList.add('hr-processed');
+          hr.style.border = 'none';
+          hr.style.borderTop = '1px solid #ccc';
+          hr.style.margin = '20px 0';
+        }
+      });
+      
+      // 7. Fix links and remove href attributes (table of contents links don't work in Word)
+      const links = tempDiv.querySelectorAll('a');
+      links.forEach(link => {
+        if (!link.classList.contains('link-processed')) {
+          link.classList.add('link-processed');
+          link.style.color = '#0066cc';
+          link.style.textDecoration = 'underline';
+          // Remove href to prevent broken links in Word
+          link.removeAttribute('href');
+        }
+      });
+      
+      // 8. Replace horizontal rules with double line breaks (spacing)
+      const horizontalRules = tempDiv.querySelectorAll('hr');
+      horizontalRules.forEach(hr => {
+        if (!hr.classList.contains('hr-replaced')) {
+          hr.classList.add('hr-replaced');
+          // Replace hr with two paragraph breaks for spacing
+          const spacingDiv = document.createElement('div');
+          spacingDiv.innerHTML = '<p>&nbsp;</p><p>&nbsp;</p>';
+          hr.parentNode.replaceChild(spacingDiv, hr);
+        }
+      });
+      
+      // 9. Fix underlining (underline elements)
+      const underlinedElements = tempDiv.querySelectorAll('u, [style*="text-decoration: underline"]');
+      underlinedElements.forEach(element => {
+        if (!element.classList.contains('underline-processed')) {
+          element.classList.add('underline-processed');
+          element.style.textDecoration = 'underline';
+          element.style.textDecorationColor = '#000000';
+          element.style.textDecorationThickness = '1px';
+        }
+      });
+      
+      // 10. Fix strikethrough (del, s, strike elements)
+      const strikethroughElements = tempDiv.querySelectorAll('del, s, strike, [style*="text-decoration: line-through"]');
+      strikethroughElements.forEach(element => {
+        if (!element.classList.contains('strikethrough-processed')) {
+          element.classList.add('strikethrough-processed');
+          element.style.textDecoration = 'line-through';
+          element.style.textDecorationColor = '#000000';
+          element.style.textDecorationThickness = '1px';
+        }
+      });
+      
+      // 11. Add vertical spacing around tables
+      const tablesForSpacing = tempDiv.querySelectorAll('table');
+      tablesForSpacing.forEach(table => {
+        if (!table.classList.contains('table-spacing-processed')) {
+          table.classList.add('table-spacing-processed');
+          
+          // Add spacing before table
+          const spacingBefore = document.createElement('p');
+          spacingBefore.innerHTML = '&nbsp;';
+          spacingBefore.style.marginBottom = '10px';
+          table.parentNode.insertBefore(spacingBefore, table);
+          
+          // Add spacing after table
+          const spacingAfter = document.createElement('p');
+          spacingAfter.innerHTML = '&nbsp;';
+          spacingAfter.style.marginTop = '10px';
+          table.parentNode.insertBefore(spacingAfter, table.nextSibling);
+        }
+      });
+      
+      // 12. Handle images (convert to text placeholders)
+      const images = tempDiv.querySelectorAll('img');
+      images.forEach(img => {
+        if (!img.classList.contains('image-processed')) {
+          img.classList.add('image-processed');
+          const placeholder = document.createElement('p');
+          placeholder.innerHTML = `[Image: ${img.alt || 'No description'}]`;
+          placeholder.style.color = '#666';
+          placeholder.style.fontStyle = 'italic';
+          placeholder.style.backgroundColor = '#f9f9f9';
+          placeholder.style.padding = '10px';
+          placeholder.style.border = '1px dashed #ccc';
+          placeholder.style.borderRadius = '4px';
+          img.parentNode.replaceChild(placeholder, img);
+        }
+      });
+      
+      // 13. Handle collapsible sections (expand them)
+      const collapsibleSections = tempDiv.querySelectorAll('details, [class*="collapse"], [class*="accordion"]');
+      collapsibleSections.forEach(section => {
+        if (!section.classList.contains('collapsible-processed')) {
+          section.classList.add('collapsible-processed');
+          
+          // If it's a details element, expand it
+          if (section.tagName.toLowerCase() === 'details') {
+            section.setAttribute('open', '');
+          }
+          
+          // Add a header to indicate it was a collapsible section
+          const header = document.createElement('h4');
+          header.innerHTML = '📋 Section Content:';
+          header.style.color = '#666';
+          header.style.fontSize = '14px';
+          header.style.marginBottom = '10px';
+          section.parentNode.insertBefore(header, section);
+        }
+      });
+      
+      // 14. Handle math elements (convert to plain text)
+      const mathElements = tempDiv.querySelectorAll('math, [class*="math"], [class*="katex"]');
+      mathElements.forEach(math => {
+        if (!math.classList.contains('math-processed')) {
+          math.classList.add('math-processed');
+          const mathText = document.createElement('p');
+          mathText.innerHTML = `[Math: ${math.textContent || math.innerText}]`;
+          mathText.style.fontFamily = 'Courier New, monospace';
+          mathText.style.backgroundColor = '#f0f0f0';
+          mathText.style.padding = '5px';
+          mathText.style.borderRadius = '3px';
+          math.parentNode.replaceChild(mathText, math);
+        }
+      });
+      
       // Ensure proper HTML structure
       let cleanedHTML = tempDiv.innerHTML;
       
