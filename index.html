@@ -7,8 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;700&display=swap" rel="stylesheet">
-    <title>R² Solutions · GPT → DOCX Converter</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.5/jszip.min.js"></script>
+    <title>R² Solutions · GPT → Word Copier</title>
     <style>
       :root{
         --font:'Plus Jakarta Sans',sans-serif;
@@ -32,7 +31,7 @@
       .body{padding:18px;display:flex;flex-direction:column;gap:14px;text-align:left}
       .md{width:100%;min-height:320px;resize:vertical;background:#0a0f1e;border:1px solid var(--field-bd);color:#e2e8f0;border-radius:12px;padding:16px;box-sizing:border-box;font-size:1.05rem;line-height:1.6;outline:none}
       .controls{display:flex;gap:.8rem;flex-wrap:wrap;align-items:center;margin-top:10px}
-      .filename{background:#0a0f1e;border:1px solid var(--field-bd);color:#e2e8f0;border-radius:12px;padding:.75rem 1rem;min-width:260px;flex:1}
+      .filename{background:#0a0f1e;border:1px solid var(--field-bd);color:#e2e8f0;border-radius:12px;padding:.75rem 1rem;min-width:260px;flex:1; display: none;} /* Filename is not needed now */
       .btn{appearance:none;border:1px solid var(--bd);background:#10192e;color:#e6faff;border-radius:12px;padding:.75rem 1rem;font-weight:800;cursor:pointer;transition:.18s}
       .btn:hover{transform:translateY(-1px);border-color:#8b5cf6}
       .btn.good{border-color:#15b57b}
@@ -47,15 +46,15 @@
     <p class="sub">Powered by AI · Built by R² Solutions</p>
     <div class="box">
       <div class="hdr">
-        <div class="l"><span class="title">R² Solutions · GPT → DOCX Converter</span><span class="v">v8.0</span></div>
+        <div class="l"><span class="title">R² Solutions · GPT → Word Copier</span><span class="v">v10.1</span></div>
         <div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
       </div>
       <div class="body">
-        <textarea id="md" class="md" placeholder="1. Use bookmarklet in ChatGPT.&#10;2. Paste here.&#10;3. Download."></textarea>
+        <textarea id="md" class="md" placeholder="1. Use bookmarklet in ChatGPT.&#10;2. Paste here.&#10;3. Click 'Copy for Word'."></textarea>
         <div class="controls">
           <input id="filename" class="filename" type="text" value="R2 GPT Export.docx"/>
           <button onclick="pasteFromClipboard()" class="btn">Paste from Clipboard</button>
-          <button onclick="downloadDocx()" class="btn good">Download .docx</button>
+          <button onclick="copyForWord()" class="btn good">Copy for Word</button>
           <button onclick="clearContent()" class="btn" style="background:#0f1a2e">Clear</button>
           <button onclick="showBookmarkletModal()" class="btn">Get Bookmarklet</button>
         </div>
@@ -94,94 +93,72 @@
       }).catch(() => showToast('Paste failed. Use Ctrl+V.'));
     }
 
-    function downloadDocx() {
-      const htmlString = document.getElementById('md').value;
-      if (!htmlString.trim()) {
-        showToast('Nothing to download!');
+    function copyForWord() {
+      const htmlContent = document.getElementById('md').value;
+      if (!htmlContent.trim()) {
+        showToast('Nothing to copy!');
         return;
       }
 
-      const zip = new JSZip();
+      // We create a complete HTML document with styles, which Word understands.
+      const styledHtml = `
+        <html>
+          <head>
+            <style>
+              /* --- General Body Styles --- */
+              body { font-family: Calibri, sans-serif; font-size: 11pt; }
 
-      const parser = new DOMParser();
-      const doc = parser.parseFromString(htmlString, 'text/html');
-      let contentXml = '';
+              /* --- Heading Styles --- */
+              h1 { font-size: 24pt; font-weight: bold; margin-top: 24px; margin-bottom: 12px; }
+              h2 { font-size: 18pt; font-weight: bold; margin-top: 18px; margin-bottom: 9px; }
+              h3 { font-size: 14pt; font-weight: bold; margin-top: 14px; margin-bottom: 7px; }
+              h4 { font-size: 12pt; font-weight: bold; margin-top: 12px; margin-bottom: 6px; }
+              
+              /* --- Block & Structural Elements --- */
+              p { margin: 0 0 10px 0; }
+              pre { background-color: #f0f0f0; padding: 10px; font-family: 'Courier New', monospace; border: 1px solid #ddd; white-space: pre-wrap; margin: 10px 0; }
+              blockquote { border-left: 2px solid #ccc; padding-left: 10px; margin-left: 5px; color: #555; }
+              hr { border: none; border-top: 1px solid #ccc; margin: 20px 0; }
+              
+              /* --- List Styles --- */
+              ul, ol { margin-top: 0; margin-bottom: 10px; padding-left: 40px; }
+              
+              /* --- Table Styles --- */
+              table { border-collapse: collapse; margin-bottom: 10px; }
+              td, th { border: 1px solid #ccc; padding: 8px; }
+              th { font-weight: bold; background-color: #f2f2f2; }
 
-      function processNode(node) {
-        let xml = '';
-        switch (node.nodeName.toLowerCase()) {
-          case 'h1': case 'h2': case 'h3': case 'h4': case 'h5': case 'h6':
-            xml += `<w:p><w:pPr><w:pStyle w:val="${node.nodeName.charAt(0).toUpperCase() + node.nodeName.slice(1)}"/></w:pPr><w:r><w:t>${escapeXml(node.textContent)}</w:t></w:r></w:p>`;
-            break;
-          case 'p':
-            xml += `<w:p><w:r><w:t>${escapeXml(node.textContent)}</w:t></w:r></w:p>`;
-            break;
-          case 'ul':
-            Array.from(node.children).forEach(child => {
-              if (child.nodeName.toLowerCase() === 'li') {
-                xml += `<w:p><w:pPr><w:pStyle w:val="ListParagraph"/><w:numPr><w:ilvl w:val="0"/><w:numId w:val="1"/></w:numPr></w:pPr><w:r><w:t>${escapeXml(child.textContent)}</w:t></w:r></w:p>`;
-              }
-            });
-            break;
-          case 'ol':
-            Array.from(node.children).forEach(child => {
-              if (child.nodeName.toLowerCase() === 'li') {
-                xml += `<w:p><w:pPr><w:pStyle w:val="ListParagraph"/><w:numPr><w:ilvl w:val="0"/><w:numId w:val="2"/></w:numPr></w:pPr><w:r><w:t>${escapeXml(child.textContent)}</w:t></w:r></w:p>`;
-              }
-            });
-            break;
-          case 'b': case 'strong':
-            xml += `<w:r><w:rPr><w:b/></w:rPr><w:t>${escapeXml(node.textContent)}</w:t></w:r>`;
-            break;
-          case 'i': case 'em':
-            xml += `<w:r><w:rPr><w:i/></w:rPr><w:t>${escapeXml(node.textContent)}</w:t></w:r>`;
-            break;
-          case '#text':
-            xml += `<w:r><w:t>${escapeXml(node.textContent)}</w:t></w:r>`;
-            break;
-          default:
-            if (node.childNodes.length > 0) {
-              Array.from(node.childNodes).forEach(child => {
-                xml += processNode(child);
-              });
-            }
-        }
-        return xml;
+              /* --- Inline Element Styles --- */
+              a { color: #0000ff; text-decoration: underline; }
+              code { font-family: 'Courier New', monospace; background-color: #f0f0f0; padding: 2px 4px; }
+              s, del { text-decoration: line-through; }
+            </style>
+          </head>
+          <body>
+            ${htmlContent}
+          </body>
+        </html>
+      `;
+
+      // Use the Clipboard API to write the formatted HTML
+      try {
+        const blob = new Blob([styledHtml], { type: 'text/html' });
+        const clipboardItem = new ClipboardItem({ 'text/html': blob });
+        navigator.clipboard.write([clipboardItem]).then(() => {
+          showToast('✅ Copied! Now paste into Word.');
+        }, (err) => {
+          console.error(err);
+          showToast('Could not copy to clipboard.');
+        });
+      } catch (e) {
+        console.error(e);
+        showToast('Error using clipboard API.');
       }
-      
-      contentXml = Array.from(doc.body.childNodes).map(processNode).join('');
-
-      zip.file("[Content_Types].xml", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/><Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/></Types>`);
-      zip.file("_rels/.rels", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>`);
-      zip.folder("word").file("_rels/document.xml.rels", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>`);
-      zip.folder("word").file("document.xml", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>${contentXml}</w:body></w:document>`);
-      zip.folder("word").file("styles.xml", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:style w:type="paragraph" w:styleId="H1"><w:name w:val="Heading 1"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:pPr><w:keepNext w:val="1"/><w:spacing w:before="240" w:after="0"/></w:pPr><w:rPr><w:b/><w:sz w:val="32"/></w:rPr></w:style><w:style w:type="paragraph" w:styleId="H2"><w:name w:val="Heading 2"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:pPr><w:keepNext w:val="1"/><w:spacing w:before="200" w:after="0"/></w:pPr><w:rPr><w:b/><w:sz w:val="26"/></w:rPr></w:style><w:style w:type="paragraph" w:styleId="ListParagraph"><w:name w:val="List Paragraph"/><w:basedOn w:val="Normal"/><w:uiPriority w:val="34"/><w:pPr><w:ind w:left="720"/></w:pPr></w:style></w:styles>`);
-
-      zip.generateAsync({ type: "blob" }).then(function(blob) {
-        const filename = (document.getElementById('filename').value || 'export').replace(/\.docx?$/i, '') + '.docx';
-        const a = document.createElement("a");
-        a.href = URL.createObjectURL(blob);
-        a.download = filename;
-        a.click();
-        showToast('✅ Downloaded!');
-      });
-    }
-
-    function escapeXml(str) {
-      return str.replace(/[<>&'"]/g, function (c) {
-        switch (c) {
-          case '<': return '&lt;';
-          case '>': return '&gt;';
-          case '&': return '&amp;';
-          case '\'': return '&apos;';
-          case '"': return '&quot;';
-        }
-      });
     }
 
     function showBookmarkletModal() {
-      const last = `javascript:(function(){try{const e=document.querySelectorAll('div[data-message-author-role="assistant"]');if(!e.length)return alert("No responses found.");const t=e[e.length-1].querySelector(".markdown,.prose");t?navigator.clipboard.writeText(t.innerHTML).then(()=>alert("Last response HTML copied!")).catch(e=>alert("Failed to copy")):alert("Could not find content.")}catch(e){alert("Error: "+e.message)}})();`;
-      const all = `javascript:(function(){try{const e=document.querySelectorAll('div[data-message-author-role="assistant"]');if(!e.length)return alert("No responses found.");let t="";e.forEach((n,o)=>{const r=n.querySelector(".markdown,.prose");r&&(t+=r.innerHTML,o<e.length-1&&(t+="<hr>"))}),t?navigator.clipboard.writeText(t).then(()=>alert("All responses HTML copied!")).catch(e=>alert("No content found."))}catch(e){alert("Error: "+e.message)}})();`;
+      const last = `javascript:(function(){try{const e=document.querySelectorAll('div[data-message-author-role="assistant"]');if(!e.length)return alert("No responses found.");const t=e[e.length-1].querySelector(".markdown,.prose");t?navigator.clipboard.writeText(t.outerHTML).then(()=>alert("Last response HTML copied!")).catch(e=>alert("Failed to copy")):alert("Could not find content.")}catch(e){alert("Error: "+e.message)}})();`;
+      const all = `javascript:(function(){try{const e=document.querySelectorAll('div[data-message-author-role="assistant"]');if(!e.length)return alert("No responses found.");let t="";e.forEach((n,o)=>{const r=n.querySelector(".markdown,.prose");r&&(t+=r.outerHTML,o<e.length-1&&(t+="<hr>"))}),t?navigator.clipboard.writeText(t).then(()=>alert("All responses HTML copied!")).catch(e=>alert("No content found."))}catch(e){alert("Error: "+e.message)}})();`;
       document.getElementById('dragLast').href = last;
       document.getElementById('dragAll').href = all;
       document.getElementById('mb').style.display = 'block';
