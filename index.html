@@ -84,7 +84,25 @@
   </div>
 
   <script>
-    function showToast(message) {
+    // Add event listener for manual paste (Ctrl+V)
+    document.addEventListener('DOMContentLoaded', function() {
+      const textarea = document.getElementById('md');
+      
+      textarea.addEventListener('paste', function(e) {
+        // Delay to let the paste happen first
+        setTimeout(() => {
+          const currentValue = textarea.value;
+          if (currentValue && currentValue.includes('<')) {
+            showToast('Processing HTML...');
+            const processedHTML = cleanAndValidateHTML(currentValue);
+            textarea.value = processedHTML;
+            showToast('✅ HTML processed and ready for conversion!');
+          }
+        }, 100);
+      });
+    });
+
+        function showToast(message) {
       const el = document.getElementById('toast');
       el.textContent = message;
       el.style.display = 'block';
@@ -99,8 +117,11 @@
     function pasteFromClipboard() {
       navigator.clipboard.readText().then(text => {
         if (text) {
-          document.getElementById('md').value = text;
-          showToast('Pasted!');
+          showToast('Processing HTML...');
+          // Process the HTML before setting it in the textarea
+          const processedHTML = cleanAndValidateHTML(text);
+          document.getElementById('md').value = processedHTML;
+          showToast('✅ HTML processed and ready for conversion!');
         } else {
           showToast('Clipboard empty!');
         }
@@ -449,9 +470,6 @@
       document.getElementById('mb').style.display = 'none';
       document.getElementById('mbBackdrop').style.display = 'none';
     }
-  </script>
-</body>
-</html>
   </script>
 </body>
 </html>
