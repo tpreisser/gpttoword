@@ -8,6 +8,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;700&display=swap" rel="stylesheet">
     <title>R² Solutions · GPT → Word Copier</title>
+    <script src="https://cdn.jsdelivr.net/npm/@turbodocx/html-to-docx/dist/html-to-docx.min.js"></script>
     <style>
       :root{
         --font:'Plus Jakarta Sans',sans-serif;
@@ -38,6 +39,10 @@
       .backdrop{position:fixed;inset:0;background:var(--backdrop);display:none;z-index:50}
       .modal{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);width:min(560px,92vw);background:#0b1022;border:1px solid var(--panel-bd);border-radius:16px;padding:18px;box-shadow:0 20px 50px rgba(0,0,0,.6);display:none;z-index:51;text-align:left}
       .toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#0a1a2e;border:1px solid #1e293b;padding:10px 14px;border-radius:10px;color:#e2f3ff;display:none;z-index:60;transition:opacity .3s}
+      .loading{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:var(--panel);border:1px solid var(--panel-bd);border-radius:16px;padding:20px;box-shadow:0 20px 50px rgba(0,0,0,.6);z-index:70;display:none}
+      .loading .spinner{width:40px;height:40px;border:3px solid var(--field-bd);border-top:3px solid var(--blue);border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 15px}
+      @keyframes spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
+      .btn:disabled{opacity:0.5;cursor:not-allowed;transform:none!important}
     </style>
 </head>
 <body>
@@ -50,11 +55,11 @@
         <div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
       </div>
       <div class="body">
-        <textarea id="md" class="md" placeholder="1. Use bookmarklet in ChatGPT.&#10;2. Paste here.&#10;3. Click 'Copy for Word'."></textarea>
+        <textarea id="md" class="md" placeholder="1. Use bookmarklet in ChatGPT.&#10;2. Paste here.&#10;3. Click 'Convert to Word'."></textarea>
         <div class="controls">
           <input id="filename" class="filename" type="text" value="R2 GPT Export.docx"/>
           <button onclick="pasteFromClipboard()" class="btn">Paste from Clipboard</button>
-          <button onclick="copyForWord()" class="btn good">Copy for Word</button>
+          <button onclick="convertToWord()" class="btn good">Convert to Word</button>
           <button onclick="clearContent()" class="btn" style="background:#0f1a2e">Clear</button>
           <button onclick="showBookmarkletModal()" class="btn">Get Bookmarklet</button>
         </div>
@@ -68,6 +73,10 @@
     <div class="actions"> <button onclick="closeModal()" class="btn" style="background:#0f1a2e">Close</button> </div>
   </div>
   <div id="toast" class="toast"></div>
+  <div id="loading" class="loading">
+    <div class="spinner"></div>
+    <div>Converting to Word document...</div>
+  </div>
 
   <script>
     function showToast(message) {
@@ -93,66 +102,122 @@
       }).catch(() => showToast('Paste failed. Use Ctrl+V.'));
     }
 
-    function copyForWord() {
+    function showLoading(show) {
+      const loading = document.getElementById('loading');
+      const convertBtn = document.querySelector('button[onclick="convertToWord()"]');
+      
+      if (show) {
+        loading.style.display = 'block';
+        convertBtn.disabled = true;
+        convertBtn.textContent = 'Converting...';
+      } else {
+        loading.style.display = 'none';
+        convertBtn.disabled = false;
+        convertBtn.textContent = 'Convert to Word';
+      }
+    }
+
+    function cleanAndValidateHTML(htmlContent) {
+      // Create a temporary div to parse and clean the HTML
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = htmlContent;
+      
+      // Remove any script tags for security
+      const scripts = tempDiv.querySelectorAll('script');
+      scripts.forEach(script => script.remove());
+      
+      // Remove any style tags that might interfere
+      const styles = tempDiv.querySelectorAll('style');
+      styles.forEach(style => style.remove());
+      
+      // Ensure proper HTML structure
+      let cleanedHTML = tempDiv.innerHTML;
+      
+      // If it's just text, wrap it in paragraphs
+      if (!cleanedHTML.includes('<')) {
+        cleanedHTML = `<p>${cleanedHTML}</p>`;
+      }
+      
+      // Add basic styling for better conversion
+      cleanedHTML = `
+        <div style="font-family: Calibri, sans-serif; font-size: 11pt; line-height: 1.4;">
+          ${cleanedHTML}
+        </div>
+      `;
+      
+      return cleanedHTML;
+    }
+
+    function convertToWord() {
       const htmlContent = document.getElementById('md').value;
       if (!htmlContent.trim()) {
-        showToast('Nothing to copy!');
+        showToast('Nothing to convert!');
         return;
       }
 
-      // We create a complete HTML document with styles, which Word understands.
-      const styledHtml = `
-        <html>
-          <head>
-            <style>
-              /* --- General Body Styles --- */
-              body { font-family: Calibri, sans-serif; font-size: 11pt; }
+      // Check if library is loaded
+      if (typeof HTMLtoDOCX === 'undefined') {
+        showToast('❌ Conversion library not loaded. Please refresh the page.');
+        return;
+      }
 
-              /* --- Heading Styles --- */
-              h1 { font-size: 24pt; font-weight: bold; margin-top: 24px; margin-bottom: 12px; }
-              h2 { font-size: 18pt; font-weight: bold; margin-top: 18px; margin-bottom: 9px; }
-              h3 { font-size: 14pt; font-weight: bold; margin-top: 14px; margin-bottom: 7px; }
-              h4 { font-size: 12pt; font-weight: bold; margin-top: 12px; margin-bottom: 6px; }
-              
-              /* --- Block & Structural Elements --- */
-              p { margin: 0 0 10px 0; }
-              pre { background-color: #f0f0f0; padding: 10px; font-family: 'Courier New', monospace; border: 1px solid #ddd; white-space: pre-wrap; margin: 10px 0; }
-              blockquote { border-left: 2px solid #ccc; padding-left: 10px; margin-left: 5px; color: #555; }
-              hr { border: none; border-top: 1px solid #ccc; margin: 20px 0; }
-              
-              /* --- List Styles --- */
-              ul, ol { margin-top: 0; margin-bottom: 10px; padding-left: 40px; }
-              
-              /* --- Table Styles --- */
-              table { border-collapse: collapse; margin-bottom: 10px; }
-              td, th { border: 1px solid #ccc; padding: 8px; }
-              th { font-weight: bold; background-color: #f2f2f2; }
+      showLoading(true);
 
-              /* --- Inline Element Styles --- */
-              a { color: #0000ff; text-decoration: underline; }
-              code { font-family: 'Courier New', monospace; background-color: #f0f0f0; padding: 2px 4px; }
-              s, del { text-decoration: line-through; }
-            </style>
-          </head>
-          <body>
-            ${htmlContent}
-          </body>
-        </html>
-      `;
-
-      // Use the Clipboard API to write the formatted HTML
       try {
-        const blob = new Blob([styledHtml], { type: 'text/html' });
-        const clipboardItem = new ClipboardItem({ 'text/html': blob });
-        navigator.clipboard.write([clipboardItem]).then(() => {
-          showToast('✅ Copied! Now paste into Word.');
-        }, (err) => {
-          console.error(err);
-          showToast('Could not copy to clipboard.');
+        // Clean and validate the HTML
+        const cleanedHTML = cleanAndValidateHTML(htmlContent);
+        
+        // Use the proper html-to-docx library
+        const options = {
+          margin: {
+            top: 1440,
+            right: 1440,
+            bottom: 1440,
+            left: 1440
+          },
+          font: {
+            family: 'Calibri',
+            size: 11
+          },
+          table: {
+            row: {
+              cantSplit: true
+            }
+          },
+          header: false,
+          footer: false,
+          pageNumber: false
+        };
+
+        // Convert HTML to DOCX using the browser-compatible library
+        HTMLtoDOCX(cleanedHTML, null, options).then(fileBuffer => {
+          // Create blob and download
+          const blob = new Blob([fileBuffer], { 
+            type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' 
+          });
+          
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.style.display = 'none';
+          a.href = url;
+          a.download = 'R2_GPT_Export.docx';
+          document.body.appendChild(a);
+          a.click();
+          window.URL.revokeObjectURL(url);
+          document.body.removeChild(a);
+          
+          showLoading(false);
+          showToast('✅ Word document downloaded!');
+        }).catch(error => {
+          console.error('Conversion error:', error);
+          showLoading(false);
+          showToast('❌ Conversion failed. Please try again.');
         });
-      } catch (e) {
-        console.error(e);
-        showToast('Error using clipboard API.');
+        
+      } catch (error) {
+        console.error('Error:', error);
+        showLoading(false);
+        showToast('❌ Conversion failed. Please try again.');
       }
     }
 
