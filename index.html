@@ -258,9 +258,14 @@
           link.style.textDecoration = 'underline';
           link.style.textDecorationColor = '#0066cc';
           link.style.textDecorationThickness = '1px';
+          link.style.fontWeight = 'normal';
           // Remove href to prevent broken links in Word
           link.removeAttribute('href');
           link.removeAttribute('target');
+          // Add link indicator
+          if (link.textContent.trim()) {
+            link.innerHTML = `${link.innerHTML} [link]`;
+          }
         }
       });
       
@@ -276,27 +281,31 @@
         }
       });
       
-      // 9. Fix underlining - use strong inline styling
+      // 9. Fix underlining - convert to <u> tags with proper styling
       const underlinedElements = tempDiv.querySelectorAll('u, [style*="text-decoration: underline"]');
       underlinedElements.forEach(element => {
         if (!element.classList.contains('underline-processed')) {
           element.classList.add('underline-processed');
-          element.style.textDecoration = 'underline';
-          element.style.textDecorationColor = '#000000';
-          element.style.textDecorationThickness = '1px';
-          element.style.textDecorationStyle = 'solid';
+          // Create a new <u> element
+          const uElement = document.createElement('u');
+          uElement.innerHTML = element.innerHTML;
+          uElement.style.color = element.style.color || '#000000';
+          uElement.style.fontWeight = element.style.fontWeight || 'normal';
+          element.parentNode.replaceChild(uElement, element);
         }
       });
       
-      // 10. Fix strikethrough - use strong inline styling
+      // 10. Fix strikethrough - convert to <s> tags with proper styling
       const strikethroughElements = tempDiv.querySelectorAll('del, s, strike, [style*="text-decoration: line-through"]');
       strikethroughElements.forEach(element => {
         if (!element.classList.contains('strikethrough-processed')) {
           element.classList.add('strikethrough-processed');
-          element.style.textDecoration = 'line-through';
-          element.style.textDecorationColor = '#000000';
-          element.style.textDecorationThickness = '1px';
-          element.style.textDecorationStyle = 'solid';
+          // Create a new <s> element
+          const sElement = document.createElement('s');
+          sElement.innerHTML = element.innerHTML;
+          sElement.style.color = element.style.color || '#000000';
+          sElement.style.fontWeight = element.style.fontWeight || 'normal';
+          element.parentNode.replaceChild(sElement, element);
         }
       });
       
@@ -348,6 +357,7 @@
           
           // Create a new div to hold all content
           const contentDiv = document.createElement('div');
+          contentDiv.style.marginBottom = '15px';
           
           // If it's a details element, extract summary and content
           if (section.tagName.toLowerCase() === 'details') {
@@ -360,19 +370,28 @@
               header.style.fontSize = '16px';
               header.style.marginBottom = '10px';
               header.style.fontWeight = 'bold';
+              header.style.borderBottom = '1px solid #ccc';
+              header.style.paddingBottom = '5px';
               contentDiv.appendChild(header);
             }
             
             // Add all other content (everything except summary)
             Array.from(section.children).forEach(child => {
               if (child.tagName.toLowerCase() !== 'summary') {
-                contentDiv.appendChild(child.cloneNode(true));
+                const clonedChild = child.cloneNode(true);
+                // Ensure proper spacing for list items
+                if (clonedChild.tagName.toLowerCase() === 'ul' || clonedChild.tagName.toLowerCase() === 'ol') {
+                  clonedChild.style.marginLeft = '20px';
+                  clonedChild.style.marginBottom = '10px';
+                }
+                contentDiv.appendChild(clonedChild);
               }
             });
           } else {
             // For other collapsible elements, just extract all content
             Array.from(section.children).forEach(child => {
-              contentDiv.appendChild(child.cloneNode(true));
+              const clonedChild = child.cloneNode(true);
+              contentDiv.appendChild(clonedChild);
             });
           }
           
@@ -410,18 +429,24 @@
         <html>
         <head>
           <style>
-            body { font-family: Calibri, sans-serif; font-size: 11pt; line-height: 1.4; }
-            h1 { font-size: 24pt; font-weight: bold; margin-top: 24px; margin-bottom: 12px; }
-            h2 { font-size: 18pt; font-weight: bold; margin-top: 18px; margin-bottom: 9px; }
-            h3 { font-size: 14pt; font-weight: bold; margin-top: 14px; margin-bottom: 7px; }
-            p { margin: 0 0 10px 0; }
-            pre { background-color: #f0f0f0; padding: 10px; font-family: 'Courier New', monospace; border: 1px solid #ddd; white-space: pre-wrap; margin: 10px 0; }
-            blockquote { border-left: 2px solid #ccc; padding-left: 10px; margin-left: 5px; color: #555; }
-            ul, ol { margin-top: 0; margin-bottom: 10px; padding-left: 40px; }
-            table { border-collapse: collapse; margin-bottom: 10px; }
-            td, th { border: 1px solid #ccc; padding: 8px; }
+            body { font-family: Calibri, sans-serif; font-size: 11pt; line-height: 1.4; margin: 20px; }
+            h1 { font-size: 24pt; font-weight: bold; margin-top: 24px; margin-bottom: 12px; color: #000; }
+            h2 { font-size: 18pt; font-weight: bold; margin-top: 18px; margin-bottom: 9px; color: #000; }
+            h3 { font-size: 14pt; font-weight: bold; margin-top: 14px; margin-bottom: 7px; color: #000; }
+            h4 { font-size: 12pt; font-weight: bold; margin-top: 12px; margin-bottom: 6px; color: #000; }
+            p { margin: 0 0 10px 0; color: #000; }
+            pre { background-color: #f0f0f0; padding: 10px; font-family: 'Courier New', monospace; border: 1px solid #ddd; white-space: pre-wrap; margin: 10px 0; color: #000; }
+            blockquote { border-left: 2px solid #ccc; padding-left: 10px; margin-left: 5px; color: #555; font-style: italic; }
+            ul, ol { margin-top: 0; margin-bottom: 10px; padding-left: 40px; color: #000; }
+            li { margin-bottom: 5px; color: #000; }
+            table { border-collapse: collapse; margin-bottom: 15px; width: 100%; }
+            td, th { border: 1px solid #ccc; padding: 8px; color: #000; }
             th { font-weight: bold; background-color: #f2f2f2; }
-            code { font-family: 'Courier New', monospace; background-color: #f0f0f0; padding: 2px 4px; }
+            code { font-family: 'Courier New', monospace; background-color: #f0f0f0; padding: 2px 4px; color: #000; }
+            u { text-decoration: underline; color: #000; }
+            s { text-decoration: line-through; color: #000; }
+            a { color: #0066cc; text-decoration: underline; }
+            hr { border: none; border-top: 1px solid #ccc; margin: 20px 0; }
           </style>
         </head>
         <body>
