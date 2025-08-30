@@ -93,7 +93,7 @@
   <div id="mbBackdrop" class="backdrop"></div>
   <div id="mb" class="modal">
     <h3>Drag your preferred button into your bookmarks bar</h3>
-    <div class="choice"> <a id="dragLast" class="draglet" href="#" draggable="true">R2 GPT Convert — Last</a> <a id="dragAll"  class="draglet" href="#" draggable="true">R2 GPT Convert — Whole</a> </div>
+    <div class="choice"> <a id="dragLast" class="draglet" href="#" draggable="true">R2 GPT Convert — Last</a> <a id="dragAll"  class="draglet" href="#" draggable="true">R2 GPT Convert — Whole</a> <a id="dragSelection" class="draglet" href="#" draggable="true">R2 GPT Convert — Selection</a> </div>
     <div class="actions"> <button onclick="closeModal()" class="btn" style="background:#0f1a2e">Close</button> </div>
   </div>
   <div id="toast" class="toast"></div>
@@ -812,8 +812,10 @@
     function showBookmarkletModal() {
       const last = `javascript:(function(){try{const e=document.querySelectorAll('div[data-message-author-role="assistant"]');if(!e.length)return alert("No responses found.");const t=e[e.length-1].querySelector(".markdown,.prose");t?navigator.clipboard.writeText(t.outerHTML).then(()=>alert("Last response HTML copied!")).catch(e=>alert("Failed to copy")):alert("Could not find content.")}catch(e){alert("Error: "+e.message)}})();`;
       const all = `javascript:(function(){try{const e=document.querySelectorAll('div[data-message-author-role="assistant"]');if(!e.length)return alert("No responses found.");let t="";e.forEach((n,o)=>{const r=n.querySelector(".markdown,.prose");r&&(t+=r.outerHTML,o<e.length-1&&(t+="<hr>"))}),t?navigator.clipboard.writeText(t).then(()=>alert("All responses HTML copied!")).catch(e=>alert("No content found."))}catch(e){alert("Error: "+e.message)}})();`;
+      const selection = `javascript:(function(){try{const selection=window.getSelection();if(!selection.rangeCount)return alert("Please select some text first!");const range=selection.getRangeAt(0);const container=range.commonAncestorContainer;let element=container.nodeType===1?container:container.parentElement;while(element&&!element.classList.contains('markdown')&&!element.classList.contains('prose')){element=element.parentElement}if(!element)return alert("Could not find formatted content for selection.");const tempDiv=document.createElement('div');tempDiv.appendChild(range.cloneContents());const selectedHTML=tempDiv.innerHTML;if(!selectedHTML.trim())return alert("No content selected!");navigator.clipboard.writeText(selectedHTML).then(()=>alert("Selected content HTML copied!")).catch(e=>alert("Failed to copy"))}catch(e){alert("Error: "+e.message)}})();`;
       document.getElementById('dragLast').href = last;
       document.getElementById('dragAll').href = all;
+      document.getElementById('dragSelection').href = selection;
       document.getElementById('mb').style.display = 'block';
       document.getElementById('mbBackdrop').style.display = 'block';
     }
