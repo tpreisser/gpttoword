@@ -56,7 +56,9 @@
       .backdrop{position:fixed;inset:0;background:var(--backdrop);display:none;z-index:50}
       .modal{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);width:min(560px,92vw);background:var(--panel);border:1px solid var(--panel-bd);border-radius:20px;padding:24px;box-shadow:0 20px 50px rgba(0,0,0,.6);display:none;z-index:51;text-align:left;backdrop-filter:blur(10px);max-height:90vh;overflow-y:auto}
       .modal h3{color:#fff;font-size:1.3rem;font-weight:700;margin:0 0 20px 0;text-align:center}
-      .choice{display:flex;flex-direction:column;gap:12px;margin:20px 0;max-height:300px;overflow-y:auto}
+      .choice{display:flex;flex-direction:column;gap:16px;margin:20px 0;max-height:400px;overflow-y:auto}
+      .bookmarklet-item{display:flex;flex-direction:column;gap:6px}
+      .bookmarklet-desc{color:rgba(255,255,255,.7);font-size:0.85rem;margin:0;text-align:center;line-height:1.4}
       .draglet{display:block;background:linear-gradient(90deg,var(--blue),var(--violet));color:#fff;text-decoration:none;padding:12px 16px;border-radius:12px;font-weight:600;text-align:center;transition:all .2s;border:1px solid rgba(255,255,255,.1);font-size:0.9rem}
       .draglet:hover{transform:translateY(-2px);box-shadow:0 8px 25px rgba(60,103,227,.4);border-color:rgba(255,255,255,.2)}
       .actions{display:flex;justify-content:center;margin-top:24px}
@@ -93,7 +95,20 @@
   <div id="mbBackdrop" class="backdrop"></div>
   <div id="mb" class="modal">
     <h3>Drag your preferred button into your bookmarks bar</h3>
-    <div class="choice"> <a id="dragLast" class="draglet" href="#" draggable="true">R2 Last</a> <a id="dragAll"  class="draglet" href="#" draggable="true">R2 Whole</a> <a id="dragSelection" class="draglet" href="#" draggable="true">R2 Select</a> </div>
+    <div class="choice"> 
+      <div class="bookmarklet-item">
+        <a id="dragLast" class="draglet" href="#" draggable="true">R2 Last</a>
+        <p class="bookmarklet-desc">Copies the last response you got from ChatGPT.</p>
+      </div>
+      <div class="bookmarklet-item">
+        <a id="dragAll" class="draglet" href="#" draggable="true">R2 Whole</a>
+        <p class="bookmarklet-desc">Copies your entire chat from ChatGPT.</p>
+      </div>
+      <div class="bookmarklet-item">
+        <a id="dragSelection" class="draglet" href="#" draggable="true">R2 Select</a>
+        <p class="bookmarklet-desc">Copies your selected content from ChatGPT.</p>
+      </div>
+    </div>
     <div class="actions"> <button onclick="closeModal()" class="btn" style="background:#0f1a2e">Close</button> </div>
   </div>
   <div id="toast" class="toast"></div>
